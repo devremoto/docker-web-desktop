@@ -1,0 +1,153 @@
+# Docker Web Desktop Frontend - .gitignore
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local
+
+# Cache directories
+.cache/
+.parcel-cache/
+.vite/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+*.d.ts
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettierache
+
+# Stylelint cache
+.stylelintcache
+
+# Testing
+/cypress/videos/
+/cypress/screenshots/
+__screenshots__/
+test-results/
+playwright-report/
+
+# Vitest
+coverage/
+
+# Storybook build outputs
+.out/
+.storybook-out/
+storybook-static/
+
+# Temporary folders
+tmp/
+temp/
+
+# Hot reload
+.hot-update.*
+
+# Webpack
+.webpack/
+
+# Rollup
+.rollup.cache/
+
+# Vite
+.vite/
+
+# SvelteKit
+.svelte-kit/
+
+# Next.js (if applicable)
+.next/
+out/
+
+# Nuxt.js (if applicable)
+.nuxt/
+
+# PWA files
+sw.js
+workbox-*.js
+
+# Firebase (if applicable)
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Netlify (if applicable)
+.netlify/
+
+# Vercel (if applicable)
+.vercel/
+
+# Local server
+.serve/
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm/
+
+# Optional eslint cache
+.eslintcache
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Bundle analyzer
+bundle-analyzer-report.html
+
+# Application specific
+public/uploads/
+src/assets/uploads/
+
+# Backup files
+*.bak
+*.backup

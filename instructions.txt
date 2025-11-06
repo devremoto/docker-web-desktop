@@ -1,0 +1,6 @@
+Create a node.js on backend
+Create a vue.js on frontend
+
+the backend aplplication is a docker-desktop clone
+the frontend app must interact with backend
+front end must use booststap styles

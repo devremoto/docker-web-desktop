@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  # Backend Service (Development)
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: docker-clone-backend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    volumes:
+      # Mount source code for hot reloading
+      - ./backend:/app
+      - /app/node_modules
+      # Mount Docker socket to allow backend to communicate with Docker daemon
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - app-network
+    command: npm run dev
+
+  # Frontend Service (Development)
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: docker-clone-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      # Mount source code for hot reloading
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    command: npm run dev -- --host 0.0.0.0
+
+networks:
+  app-network:
+    driver: bridge
+    name: docker-clone-network-dev
