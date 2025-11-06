@@ -1,3 +1,4 @@
+import type { RouteRecordRaw } from 'vue-router'
 import ContainersView from '../views/ContainersView.vue'
 import ContainerDetailsView from '../views/ContainerDetailsView.vue'
 import ImagesView from '../views/ImagesView.vue'
@@ -9,7 +10,7 @@ import ResourcesView from '../views/ResourcesView.vue'
 import InstallationView from '../views/InstallationView.vue'
 import AboutView from '../views/AboutView.vue'
 
-const routes = [
+const routes: RouteRecordRaw[] = [
     {
         path: '/',
         name: 'Dashboard',

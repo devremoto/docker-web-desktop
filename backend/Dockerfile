@@ -1,7 +1,16 @@
 # Use the official Node.js runtime as a parent image
 FROM node:20-alpine
 
-# Set the working directory in the container
+# Ensure we are explicitly running as root for system setup commands
+USER root
+
+# Install the Docker CLI package using Alpine's package manager
+RUN apk update && apk add --no-cache docker-cli && rm -rf /var/cache/apk/*
+
+# --- User Management (Requires root privileges) ---
+
+
+# Set the working directory
 WORKDIR /app
 
 # Copy package.json and package-lock.json
@@ -28,4 +37,4 @@ EXPOSE 3000
 ENV NODE_ENV=production
 
 # Command to run the application
-CMD ["node", "src/server.js"]
+CMD [ "npm", "start" ]

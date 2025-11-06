@@ -10,6 +10,7 @@ const volumeRoutes = require('./routes/volumes');
 const networkRoutes = require('./routes/networks');
 const serviceRoutes = require('./routes/services');
 const commandRoutes = require('./routes/commands');
+const composeRoutes = require('./routes/compose');
 
 const app = express();
 const server = http.createServer(app);
@@ -24,11 +25,29 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-    origin: ["http://localhost:8080", "http://localhost:5173", "http://localhost:5174"],
+    origin: [
+        "http://localhost:8080",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175"
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
 app.use(express.json());
+
+// Swagger UI (development only)
+if (process.env.NODE_ENV === 'development') {
+    try {
+        const swaggerUi = require('swagger-ui-express');
+        const swaggerSpec = require('./swagger');
+
+        app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+        console.log('Swagger UI available at /api-docs (development)');
+    } catch (err) {
+        console.warn('Swagger UI not available. Install swagger-ui-express and swagger-jsdoc to enable it.');
+    }
+}
 
 // Routes
 app.use('/api/containers', containerRoutes);
@@ -37,6 +56,7 @@ app.use('/api/volumes', volumeRoutes);
 app.use('/api/networks', networkRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/commands', commandRoutes);
+app.use('/api/compose', composeRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

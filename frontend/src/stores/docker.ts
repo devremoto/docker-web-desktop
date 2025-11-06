@@ -1,8 +1,68 @@
 import { defineStore } from 'pinia'
 import apiService from '../services/api'
 
+interface Container {
+    Id: string
+    Names: string[]
+    Image: string
+    ImageID?: string  // Made optional since it might not always be present
+    State: string
+    Status: string
+    Ports: any[]
+    Created: number
+    Mounts?: Array<{
+        Type: string
+        Name?: string
+        Source?: string
+        Destination?: string
+    }>
+    NetworkSettings?: {
+        Networks: Record<string, any>
+    }
+    HostConfig?: {
+        NetworkMode?: string
+    }
+    [key: string]: any
+}
+
+interface DockerImage {
+    Id: string
+    RepoTags: string[]
+    Created: number
+    Size: number
+    [key: string]: any
+}
+
+interface Volume {
+    Name: string
+    Driver: string
+    Mountpoint: string
+    [key: string]: any
+}
+
+interface Network {
+    Id: string
+    Name: string
+    Driver: string
+    [key: string]: any
+}
+
+interface DockerState {
+    containers: Container[]
+    images: DockerImage[]
+    volumes: Volume[]
+    networks: Network[]
+    loading: boolean
+    error: string | null
+}
+
+interface GroupedNetwork extends Network {
+    containers: Container[]
+    isSystem: boolean
+}
+
 export const useDockerStore = defineStore('docker', {
-    state: () => ({
+    state: (): DockerState => ({
         containers: [],
         images: [],
         volumes: [],
@@ -12,17 +72,17 @@ export const useDockerStore = defineStore('docker', {
     }),
 
     getters: {
-        runningContainers: (state) => state.containers.filter(c => c.State === 'running'),
-        stoppedContainers: (state) => state.containers.filter(c => c.State === 'exited'),
-        totalContainers: (state) => state.containers.length,
-        totalImages: (state) => state.images.length,
-        totalVolumes: (state) => state.volumes.length,
-        totalNetworks: (state) => state.networks.length,
+        runningContainers: (state): Container[] => state.containers.filter(c => c.State === 'running'),
+        stoppedContainers: (state): Container[] => state.containers.filter(c => c.State === 'exited'),
+        totalContainers: (state): number => state.containers.length,
+        totalImages: (state): number => state.images.length,
+        totalVolumes: (state): number => state.volumes.length,
+        totalNetworks: (state): number => state.networks.length,
 
         // Group images by container usage
-        groupedImages: (state) => {
-            const groups = { used: [], orphaned: [] }
-            const usedImageIds = new Set()
+        groupedImages: (state): { used: (DockerImage & { containers: Container[] })[], orphaned: (DockerImage & { containers: Container[] })[] } => {
+            const groups: { used: (DockerImage & { containers: Container[] })[], orphaned: (DockerImage & { containers: Container[] })[] } = { used: [], orphaned: [] }
+            const usedImageIds = new Set<string>()
 
             // Collect all image IDs used by containers
             state.containers.forEach(container => {
@@ -59,9 +119,9 @@ export const useDockerStore = defineStore('docker', {
         },
 
         // Group volumes by container usage
-        groupedVolumes: (state) => {
-            const groups = { used: [], orphaned: [] }
-            const usedVolumeNames = new Set()
+        groupedVolumes: (state): { used: (Volume & { containers: Container[] })[], orphaned: (Volume & { containers: Container[] })[] } => {
+            const groups: { used: (Volume & { containers: Container[] })[], orphaned: (Volume & { containers: Container[] })[] } = { used: [], orphaned: [] }
+            const usedVolumeNames = new Set<string>()
 
             // Collect all volume names used by containers
             state.containers.forEach(container => {
@@ -96,9 +156,9 @@ export const useDockerStore = defineStore('docker', {
         },
 
         // Group networks by container usage
-        groupedNetworks: (state) => {
-            const groups = { used: [], orphaned: [] }
-            const usedNetworkIds = new Set()
+        groupedNetworks: (state): { used: GroupedNetwork[], orphaned: GroupedNetwork[] } => {
+            const groups: { used: GroupedNetwork[], orphaned: GroupedNetwork[] } = { used: [], orphaned: [] }
+            const usedNetworkIds = new Set<string>()
             const systemNetworks = ['bridge', 'host', 'none']
 
             // Collect all network IDs used by containers
@@ -112,8 +172,8 @@ export const useDockerStore = defineStore('docker', {
                     })
                 }
                 // Also check HostConfig.NetworkMode
-                if (container.HostConfig && container.HostConfig.NetworkMode) {
-                    const network = state.networks.find(n => n.Name === container.HostConfig.NetworkMode)
+                if (container.HostConfig?.NetworkMode) {
+                    const network = state.networks.find(n => n.Name === container.HostConfig!.NetworkMode)
                     if (network) {
                         usedNetworkIds.add(network.Id)
                     }
@@ -122,7 +182,7 @@ export const useDockerStore = defineStore('docker', {
 
             // Group networks
             state.networks.forEach(network => {
-                const networkData = {
+                const networkData: GroupedNetwork = {
                     ...network,
                     containers: state.containers.filter(container => {
                         if (container.NetworkSettings && container.NetworkSettings.Networks) {
@@ -148,122 +208,123 @@ export const useDockerStore = defineStore('docker', {
     },
 
     actions: {
-        setLoading(loading) {
+        setLoading(loading: boolean): void {
             this.loading = loading
         },
 
-        setError(error) {
+        setError(error: string | null): void {
             this.error = error
         },
 
         // Container actions
-        async fetchContainers() {
+        async fetchContainers(): Promise<void> {
             try {
                 this.setLoading(true)
-                this.containers = await apiService.getContainers()
+                this.containers = await apiService.getContainers() as Container[]
                 this.setError(null)
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             } finally {
                 this.setLoading(false)
             }
         },
 
-        async startContainer(id) {
+        async startContainer(id: string): Promise<void> {
             try {
                 await apiService.startContainer(id)
                 await this.fetchContainers()
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
         },
 
-        async stopContainer(id) {
+        async stopContainer(id: string): Promise<void> {
             try {
                 await apiService.stopContainer(id)
                 await this.fetchContainers()
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
         },
 
-        async removeContainer(id, force = false) {
+        async removeContainer(id: string, force: boolean = false): Promise<void> {
             try {
                 await apiService.removeContainer(id, force)
                 await this.fetchContainers()
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
         },
 
         // Image actions
-        async fetchImages() {
+        async fetchImages(): Promise<void> {
             try {
                 this.setLoading(true)
-                this.images = await apiService.getImages()
+                this.images = await apiService.getImages() as DockerImage[]
                 this.setError(null)
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             } finally {
                 this.setLoading(false)
             }
         },
 
-        async removeImage(id, force = false) {
+        async removeImage(id: string, force: boolean = false): Promise<void> {
             try {
                 await apiService.removeImage(id, force)
                 await this.fetchImages()
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
         },
 
         // Volume actions
-        async fetchVolumes() {
+        async fetchVolumes(): Promise<void> {
             try {
                 this.setLoading(true)
-                this.volumes = await apiService.getVolumes()
+                const volumesResponse = await apiService.getVolumes()
+                this.volumes = volumesResponse.Volumes || []
                 this.setError(null)
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             } finally {
                 this.setLoading(false)
             }
         },
 
-        async removeVolume(name) {
+        async removeVolume(name: string): Promise<void> {
             try {
                 await apiService.removeVolume(name)
                 await this.fetchVolumes()
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
         },
 
         // Network actions
-        async fetchNetworks() {
+        async fetchNetworks(): Promise<void> {
             try {
                 this.setLoading(true)
-                this.networks = await apiService.getNetworks()
+                this.networks = await apiService.getNetworks() as Network[]
                 this.setError(null)
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             } finally {
                 this.setLoading(false)
             }
         },
 
-        async removeNetwork(id) {
+        async removeNetwork(id: string): Promise<void> {
             try {
                 await apiService.removeNetwork(id)
                 await this.fetchNetworks()
             } catch (error) {
-                this.setError(error.message)
+                this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
         },
 
         // Fetch all data
-        async fetchAll() {
+        async fetchAll(): Promise<void> {
             await Promise.all([
                 this.fetchContainers(),
                 this.fetchImages(),

@@ -6,7 +6,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: docker-clone-backend-dev
+    container_name: docker-web-desktop-backend-dev
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -28,7 +28,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: docker-clone-frontend-dev
+    container_name: docker-web-desktop-frontend-dev
     restart: unless-stopped
     ports:
       - "5173:5173"
@@ -45,4 +45,4 @@ services:
 networks:
   app-network:
     driver: bridge
-    name: docker-clone-network-dev
+    name: docker-web-desktop-network-dev

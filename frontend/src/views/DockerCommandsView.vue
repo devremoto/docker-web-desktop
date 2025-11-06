@@ -49,6 +49,7 @@
       :persistent-selections="persistentSelections"
       :loading-states="loadingStates"
       :available-options="availableOptions"
+      @execute-open-current-command="performOpenCommand"
       @execute-current-command="executeCurrentCommand"
       @update:persistent-selections="persistentSelections = $event"
       @load-dropdown-data="loadDropdownData"
@@ -65,6 +66,7 @@ import DockerCommandCard from '@/components/docker/DockerCommandCard.vue'
 import DockerNoResults from '@/components/docker/DockerNoResults.vue'
 import DockerConfirmationModal from '@/components/docker/DockerConfirmationModal.vue'
 import DockerExecutionModal from '@/components/docker/DockerExecutionModal.vue'
+import serviceApi from '@/services/api'
 
 // Reactive variables
 const searchQuery = ref('')
@@ -529,9 +531,7 @@ const executeCurrentCommand = async () => {
 const loadContainersForDropdown = async () => {
     loadingStates.value.containers = true
     try {
-        const response = await fetch('http://localhost:3000/api/containers')
-        const containers = await response.json()
-        availableOptions.value.containers = containers
+        availableOptions.value.containers = await serviceApi.getContainers()
     } catch (error) {
         console.error('Failed to load containers:', error)
         availableOptions.value.containers = []
@@ -543,9 +543,7 @@ const loadContainersForDropdown = async () => {
 const loadImagesForDropdown = async () => {
     loadingStates.value.images = true
     try {
-        const response = await fetch('http://localhost:3000/api/images')
-        const images = await response.json()
-        availableOptions.value.images = images
+        availableOptions.value.images = await serviceApi.getImages()
     } catch (error) {
         console.error('Failed to load images:', error)
         availableOptions.value.images = []
@@ -557,9 +555,7 @@ const loadImagesForDropdown = async () => {
 const loadVolumesForDropdown = async () => {
     loadingStates.value.volumes = true
     try {
-        const response = await fetch('http://localhost:3000/api/volumes')
-        const volumes = await response.json()
-        availableOptions.value.volumes = volumes
+        availableOptions.value.volumes = await serviceApi.getVolumes()
     } catch (error) {
         console.error('Failed to load volumes:', error)
         availableOptions.value.volumes = []
@@ -571,9 +567,7 @@ const loadVolumesForDropdown = async () => {
 const loadNetworksForDropdown = async () => {
     loadingStates.value.networks = true
     try {
-        const response = await fetch('http://localhost:3000/api/networks')
-        const networks = await response.json()
-        availableOptions.value.networks = networks
+        availableOptions.value.networks = await serviceApi.getNetworks()
     } catch (error) {
         console.error('Failed to load networks:', error)
         availableOptions.value.networks = []
@@ -585,8 +579,7 @@ const loadNetworksForDropdown = async () => {
 const loadServicesForDropdown = async () => {
     loadingStates.value.services = true
     try {
-        const response = await fetch('http://localhost:3000/api/services')
-        const services = await response.json()
+        const services = await serviceApi.getServices()
         availableOptions.value.services = services
     } catch (error) {
         console.error('Failed to load services:', error)
@@ -658,20 +651,30 @@ const processPlaceholders = async (command) => {
     return processedCommand
 }
 
+const performOpenCommand = async () => {
+    isExecuting.value = true
+    executionResult.value = null
+    try {
+        const processedCommand = await processPlaceholders(commandToExecute.value)
+        await serviceApi.openCommand(processedCommand)
+    } catch (error) {
+        console.error('Command execution failed:', error)
+        executionResult.value = {
+            success: false,
+            error: error.message,
+            output: null
+        }
+    } finally {
+        isExecuting.value = false
+    }
+}
+
 const performExecution = async (processedCommand) => {
     isExecuting.value = true
     executionResult.value = null
 
     try {
-        const response = await fetch('http://localhost:3000/api/commands/execute', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ command: processedCommand })
-        })
-
-        const result = await response.json()
+        const result = await serviceApi.executeCommand(processedCommand)
         executionResult.value = result
     } catch (error) {
         console.error('Command execution failed:', error)

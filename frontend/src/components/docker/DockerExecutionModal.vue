@@ -12,22 +12,36 @@
         <div class="modal-body">
           <div class="mb-3">
             <strong>Command:</strong>
-            <div class="position-relative">
-              <code class="d-block mt-1 p-2 bg-light rounded" v-html="displayCommand"></code>
-              <button 
+            <div class="input-group">
+                <span class="input-group-text">
+                  <i class="bi bi-terminal"></i>
+                </span>
+                <span class="input-group-text" style="flex-grow: 1; white-space: pre-wrap;">
+                  <code class="d-block mt-1 p-2 bg-light rounded" v-html="displayCommand"></code>
+                </span>
+                <button  v-if="!isDocker"
                 type="button" 
-                class="btn btn-outline-secondary btn-sm position-absolute top-0 end-0 mt-2 me-2"
+                class="btn btn-outline-secondary"
                 @click="copyCommand"
                 title="Copy command"
               >
                 <i class="bi bi-clipboard"></i>
               </button>
-            </div>
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary"
+                  :disabled="!canExecuteCommand"
+                  @click="$emit('executeOpenCurrentCommand')"
+                  title="Open command">
+                  <i class="bi bi-terminal"></i>
+                </button>
+
+              </div>
           </div>
           
           <!-- Parameter Selection -->
           <DockerParameterSelection
-            v-if="!isExecuting && !executionResult"
+            v-if="!isExecuting && !executionResult && (commandToExecute.includes('>') && commandToExecute.includes('<'))"
             :command-to-execute="commandToExecute"
             :persistent-selections="persistentSelections"
             :loading-states="loadingStates"
@@ -68,7 +82,7 @@
                   <i class="bi bi-clipboard"></i> Copy Output
                 </button>
               </div>
-              <pre class="bg-dark text-light p-3 rounded mt-2"><code>{{ executionResult.output }}</code></pre>
+              <pre class="bg-dark text-light p-3 rounded mt-2 console-output"><code>{{ executionResult.output }}</code></pre>
             </div>
           </div>
         </div>
@@ -76,8 +90,8 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
             <i class="bi bi-x me-2"></i>Close
           </button>
-          <button 
-            v-if="!isExecuting && !executionResult"
+          <!--v-if="!isExecuting && !executionResult"-->
+          <button             
             type="button" 
             class="btn btn-primary"
             :disabled="!canExecuteCommand"
@@ -95,66 +109,78 @@
 import DockerParameterSelection from './DockerParameterSelection.vue'
 
 const props = defineProps({
-    commandToExecute: {
-        type: String,
-        required: true
-    },
-    displayCommand: {
-        type: String,
-        required: true
-    },
-    isExecuting: {
-        type: Boolean,
-        default: false
-    },
-    executionResult: {
-        type: Object,
-        default: null
-    },
-    canExecuteCommand: {
-        type: Boolean,
-        default: false
-    },
-    persistentSelections: {
-        type: Object,
-        required: true
-    },
-    loadingStates: {
-        type: Object,
-        required: true
-    },
-    availableOptions: {
-        type: Object,
-        required: true
-    }
+  commandToExecute: {
+    type: String,
+    required: true
+  },
+  displayCommand: {
+    type: String,
+    required: true
+  },
+  isExecuting: {
+    type: Boolean,
+    default: false
+  },
+  executionResult: {
+    type: Object,
+    default: null
+  },
+  canExecuteCommand: {
+    type: Boolean,
+    default: false
+  },
+  persistentSelections: {
+    type: Object,
+    required: true
+  },
+  loadingStates: {
+    type: Object,
+    required: true
+  },
+  availableOptions: {
+    type: Object,
+    required: true
+  }
 })
 
-defineEmits(['executeCurrentCommand', 'update:persistentSelections', 'loadDropdownData'])
+const isDocker = import.meta.env.MODE === 'docker'
+
+defineEmits(['executeCurrentCommand', 'update:persistentSelections', 'loadDropdownData', 'executeOpenCurrentCommand'])
 
 const copyCommand = async () => {
-    try {
-        // Get the raw command text without HTML formatting
-        const tempDiv = document.createElement('div')
-        tempDiv.innerHTML = props.displayCommand
-        const commandText = tempDiv.textContent || tempDiv.innerText
+  try {
+    // Get the raw command text without HTML formatting
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = props.displayCommand
+    const commandText = tempDiv.textContent || tempDiv.innerText
 
-        await navigator.clipboard.writeText(commandText)
-        console.log('Command copied to clipboard:', commandText)
-        // You could add a toast notification here
-    } catch (error) {
-        console.error('Failed to copy command:', error)
-    }
+    await navigator.clipboard.writeText(commandText)
+    console.log('Command copied to clipboard:', commandText)
+    // You could add a toast notification here
+  } catch (error) {
+    console.error('Failed to copy command:', error)
+  }
 }
 
 const copyOutput = async () => {
-    try {
-        if (props.executionResult && props.executionResult.output) {
-            await navigator.clipboard.writeText(props.executionResult.output)
-            console.log('Output copied to clipboard')
-            // You could add a toast notification here
-        }
-    } catch (error) {
-        console.error('Failed to copy output:', error)
+  try {
+    if (props.executionResult && props.executionResult.output) {
+      await navigator.clipboard.writeText(props.executionResult.output)
+      console.log('Output copied to clipboard')
+      // You could add a toast notification here
     }
+  } catch (error) {
+    console.error('Failed to copy output:', error)
+  }
 }
 </script>
+<style scoped>
+.console-output {
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  /* Allow line wrapping */
+  word-break: break-word;
+  /* Break long words */
+}
+</style>

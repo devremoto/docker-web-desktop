@@ -1,13 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import { useDockerStore } from './stores/docker'
 import apiService from './services/api'
+import Environment from './utils/environment'
 import Navbar from './components/Navbar.vue'
 import Sidebar from './components/Sidebar.vue'
 
 const dockerStore = useDockerStore()
 
 onMounted(() => {
+  // Log environment information
+  Environment.info('Application started', {
+    mode: Environment.mode,
+    apiUrl: Environment.config.apiBaseUrl,
+    debug: Environment.config.debug
+  })
+
   // Fetch initial data
   dockerStore.fetchAll()
 

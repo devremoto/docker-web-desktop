@@ -118,3 +118,5 @@ docs/.doctrees/
 *.bak
 *.backup
 *.old
+
+edit.bat

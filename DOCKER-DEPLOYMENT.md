@@ -11,7 +11,7 @@ This document provides instructions for deploying the Docker Web Desktop applica
 ## Project Structure
 
 ```
-docker-clone/
+docker-web-desktop/
 ├── backend/
 │   ├── src/
 │   ├── Dockerfile
@@ -37,7 +37,7 @@ docker-clone/
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd docker-clone
+   cd docker-web-desktop
    ```
 
 2. **Build and run with Docker Compose:**
@@ -111,7 +111,7 @@ Health checks ensure containers are ready before dependent services start.
 
 ## Networking
 
-- **Network Name:** `docker-clone-network`
+- **Network Name:** `docker-web-desktop-network`
 - **Driver:** bridge
 - **Inter-service Communication:** Services communicate using service names
 
@@ -200,28 +200,28 @@ docker-compose up -d --force-recreate
 ### Manual Docker Commands
 ```bash
 # Build backend image
-docker build -t docker-clone-backend ./backend
+docker build -t docker-web-desktop-backend ./backend
 
 # Build frontend image
-docker build -t docker-clone-frontend ./frontend
+docker build -t docker-web-desktop-frontend ./frontend
 
 # Create network
-docker network create docker-clone-network
+docker network create docker-web-desktop-network
 
 # Run backend
 docker run -d \
-  --name docker-clone-backend \
-  --network docker-clone-network \
+  --name docker-web-desktop-backend \
+  --network docker-web-desktop-network \
   -p 3000:3000 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  docker-clone-backend
+  docker-web-desktop-backend
 
 # Run frontend
 docker run -d \
-  --name docker-clone-frontend \
-  --network docker-clone-network \
+  --name docker-web-desktop-frontend \
+  --network docker-web-desktop-network \
   -p 80:80 \
-  docker-clone-frontend
+  docker-web-desktop-frontend
 ```
 
 ## Security Considerations
@@ -301,10 +301,10 @@ docker-compose logs > application.log
 ### Data Volumes
 ```bash
 # Backup volumes
-docker run --rm -v docker-clone_app-data:/data -v $(pwd):/backup alpine tar czf /backup/backup.tar.gz -C /data .
+docker run --rm -v docker-web-desktop_app-data:/data -v $(pwd):/backup alpine tar czf /backup/backup.tar.gz -C /data .
 
 # Restore volumes
-docker run --rm -v docker-clone_app-data:/data -v $(pwd):/backup alpine tar xzf /backup/backup.tar.gz -C /data
+docker run --rm -v docker-web-desktop_app-data:/data -v $(pwd):/backup alpine tar xzf /backup/backup.tar.gz -C /data
 ```
 
 ## Support

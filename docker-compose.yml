@@ -1,16 +1,33 @@
 services:
+  # This is the Docker Daemon (the 'host' of your inner containers)
+  dind-daemon:
+    image: docker:24-dind 
+    container_name: dind-daemon
+    privileged: true # DinD requires privileged mode to function correctly
+    volumes:
+      - dind-data:/var/lib/docker # Persist Docker data/images
+    # Expose the daemon on a TCP port for the client container to use
+    environment:
+      DOCKER_TLS_CERTDIR: "" # Disable TLS for simpler local setup (use TLS in prod)
+      DOCKER_HOST: "tcp://0.0.0.0:2375"
+    networks :
+      - app-network
+      
   # Backend Service
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: docker-clone-backend
+    container_name: docker-web-desktop-backend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3333:3000"
+    depends_on:
+      - dind-daemon
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DOCKER_HOST=tcp://dind-daemon:2375
     volumes:
       # Mount Docker socket to allow backend to communicate with Docker daemon
       - /var/run/docker.sock:/var/run/docker.sock
@@ -36,15 +53,21 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: docker-clone-frontend
+    container_name: docker-web-desktop-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "5174:80"    
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      - NODE_ENV=docker
+      - VITE_API_BASE_URL=http://backend:3000
+      - API_BASE_URL=http://backend:3000
     networks:
       - app-network
+    links:
+      - backend
     healthcheck:
       test:
         [
@@ -53,7 +76,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:80",
+          "http://localhost:5174",
         ]
       interval: 30s
       timeout: 10s
@@ -68,3 +91,4 @@ volumes:
   # Optional: if you need to persist any data
   app-data:
     driver: local
+  dind-data:

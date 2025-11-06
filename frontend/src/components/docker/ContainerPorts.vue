@@ -341,36 +341,71 @@ const handleProtocolClick = async (protocol, event) => {
 
 // Show instructions modal for opening desktop apps
 const showAppInstructions = (protocol) => {
+    // Remove any existing modal first
+    const existingModal = document.querySelector('.desktop-app-modal-global')
+    if (existingModal) {
+        existingModal.remove()
+    }
+
     // Create a simple modal with instructions
     const modal = document.createElement('div')
-    modal.className = 'desktop-app-modal'
-    modal.innerHTML = `
-        <div class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5><i class="${protocol.icon}"></i> ${protocol.name}</h5>
-                    <button class="close-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p><strong>Connection string copied to clipboard!</strong></p>
-                    <p>${protocol.instructions}</p>
-                    <div class="connection-string">
-                        <code>${protocol.copyText}</code>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-close">Got it!</button>
-                </div>
+    modal.className = 'desktop-app-modal-global'
+    modal.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 999999 !important;
+        padding: 20px !important;
+        box-sizing: border-box !important;
+    `
+
+    const modalContent = document.createElement('div')
+    modalContent.style.cssText = `
+        background: white !important;
+        padding: 1.5rem !important;
+        border-radius: 0.5rem !important;
+        max-width: 500px !important;
+        width: 100% !important;
+        max-height: 80vh !important;
+        overflow-y: auto !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+        position: relative !important;
+        margin: auto !important;
+    `
+
+    modalContent.innerHTML = `
+        <div style="display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; border-bottom: 1px solid #dee2e6 !important;">
+            <h5 style="margin: 0 !important; color: #333 !important; font-weight: 600 !important;">
+                <i class="${protocol.icon}"></i> ${protocol.name}
+            </h5>
+            <button class="close-btn" style="background: none !important; border: none !important; font-size: 1.5rem !important; cursor: pointer !important; color: #6c757d !important; padding: 0 !important; width: 30px !important; height: 30px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 50% !important;">&times;</button>
+        </div>
+        <div style="margin-bottom: 1rem !important;">
+            <p style="margin-bottom: 0.75rem !important; color: #495057 !important;"><strong>Connection string copied to clipboard!</strong></p>
+            <p style="margin-bottom: 0.75rem !important; color: #495057 !important; white-space: pre-line !important;">${protocol.instructions}</p>
+            <div style="background: #f8f9fa !important; padding: 0.75rem !important; border-radius: 0.25rem !important; margin: 0.75rem 0 !important; border: 1px solid #dee2e6 !important;">
+                <code style="background: none !important; color: #495057 !important; font-family: 'Courier New', monospace !important; word-break: break-all !important;">${protocol.copyText}</code>
             </div>
+        </div>
+        <div style="display: flex !important; justify-content: flex-end !important; padding-top: 0.5rem !important; border-top: 1px solid #dee2e6 !important;">
+            <button class="btn-close" style="background: #007bff !important; color: white !important; border: none !important; padding: 0.5rem 1rem !important; border-radius: 0.25rem !important; cursor: pointer !important; font-weight: 500 !important;">Got it!</button>
         </div>
     `
 
+    modal.appendChild(modalContent)
     document.body.appendChild(modal)
 
     // Add event listeners
     const closeBtn = modal.querySelector('.close-btn')
     const gotItBtn = modal.querySelector('.btn-close')
-    const overlay = modal.querySelector('.modal-overlay')
 
     const closeModal = () => {
         modal.remove()
@@ -378,12 +413,29 @@ const showAppInstructions = (protocol) => {
 
     closeBtn.addEventListener('click', closeModal)
     gotItBtn.addEventListener('click', closeModal)
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) closeModal()
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal()
     })
 
-    // Auto-close after 10 seconds
-    setTimeout(closeModal, 10000)
+    // Add hover effects
+    closeBtn.addEventListener('mouseenter', () => {
+        closeBtn.style.backgroundColor = '#f8f9fa'
+        closeBtn.style.color = '#495057'
+    })
+    closeBtn.addEventListener('mouseleave', () => {
+        closeBtn.style.backgroundColor = 'transparent'
+        closeBtn.style.color = '#6c757d'
+    })
+
+    gotItBtn.addEventListener('mouseenter', () => {
+        gotItBtn.style.backgroundColor = '#0056b3'
+    })
+    gotItBtn.addEventListener('mouseleave', () => {
+        gotItBtn.style.backgroundColor = '#007bff'
+    })
+
+    // Auto-close after 15 seconds
+    setTimeout(closeModal, 15000)
 }
 
 // Handle dropdown item link clicks
@@ -884,46 +936,5 @@ const getProtocolOptions = (port) => {
     line-height: 1;
 }
 
-/* Desktop app instruction modal */
-.desktop-app-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-}
-
-.desktop-app-modal-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 0.5rem;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-.desktop-app-modal h4 {
-    margin-bottom: 1rem;
-    color: #333;
-}
-
-.desktop-app-modal pre {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 0.25rem;
-    margin: 1rem 0;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-.desktop-app-modal .btn {
-    margin-right: 0.5rem;
-}
+/* Remove desktop modal styles since we use inline styles now */
 </style>

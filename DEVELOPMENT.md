@@ -133,7 +133,7 @@ npm run preview
 ## Project Structure
 
 ```
-docker-desktop-clone/
+docker-web-desktop/
 ├── backend/                 # Node.js Express API
 │   ├── src/
 │   │   ├── routes/         # API endpoint definitions
