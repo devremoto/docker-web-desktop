@@ -19,7 +19,7 @@
                 <span class="input-group-text" style="flex-grow: 1; white-space: pre-wrap;">
                   <code class="d-block mt-1 p-2 bg-light rounded" v-html="displayCommand"></code>
                 </span>
-                <button  v-if="!isDocker"
+                <button  
                 type="button" 
                 class="btn btn-outline-secondary"
                 @click="copyCommand"
@@ -27,7 +27,7 @@
               >
                 <i class="bi bi-clipboard"></i>
               </button>
-                <button 
+                <button v-if="!isDocker"
                   type="button" 
                   class="btn btn-outline-secondary"
                   :disabled="!canExecuteCommand"
