@@ -213,6 +213,14 @@ class ApiService {
     disconnect(): void {
         this.socket.disconnect()
     }
+
+    getComposeFile(projectName: string, workingDir: string, configFiles: string): Promise<{ fileName: string; content: string }> {
+        return this.api.post('/compose/file', {
+            projectName,
+            workingDir,
+            configFiles
+        }).then(response => response.data)
+    }
 }
 
 export default new ApiService()
