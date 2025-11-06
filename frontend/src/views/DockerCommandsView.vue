@@ -423,7 +423,7 @@ const executeDirectly = async (command) => {
         executionResult.value = result
 
         // Show execution modal with results
-        await showExecutionModal()
+        await showExecutionModal(result)
     } catch (error) {
         console.error('Command execution failed:', error)
         executionResult.value = {
@@ -470,10 +470,15 @@ const confirmExecution = async () => {
     await showExecutionModal()
 }
 
-const showExecutionModal = async () => {
+const showExecutionModal = async (result) => {
     // Reset execution state
-    isExecuting.value = false
-    executionResult.value = null
+    if (result) {
+        isExecuting.value = false
+        executionResult.value = result
+    } else {
+        executionResult.value = null
+        isExecuting.value = false
+    }
 
     // Clear dropdown data to force fresh loading
     availableOptions.value = {
