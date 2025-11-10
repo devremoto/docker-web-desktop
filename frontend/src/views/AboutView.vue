@@ -90,8 +90,8 @@
                   <i class="bi bi-whatsapp text-success me-3 fs-4"></i>
                   <div>
                     <h6 class="fw-bold mb-1">WhatsApp (Brazil)</h6>
-                    <a href="https://wa.me/5511935536732" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
-                      +55 11 9353-6732
+                    <a href="https://wa.me/5511993536732" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                      +55 11 99353-6732
                     </a>
                   </div>
                 </div>
@@ -280,55 +280,55 @@
 
 <style scoped>
 .hero-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .avatar-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .avatar-image {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .avatar-image:hover {
-    transform: scale(1.05);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  transform: scale(1.05);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
 .bg-gradient {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 .card {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: none;
 }
 
 .card:hover {
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
 }
 
 .btn:hover {
-    transform: translateY(-2px);
+  transform: translateY(-2px);
 }
 
 @media (max-width: 768px) {
-    .display-4 {
-        font-size: 2rem;
-    }
+  .display-4 {
+    font-size: 2rem;
+  }
 
-    .avatar-image {
-        width: 120px;
-        height: 120px;
-    }
+  .avatar-image {
+    width: 120px;
+    height: 120px;
+  }
 }
 </style>
