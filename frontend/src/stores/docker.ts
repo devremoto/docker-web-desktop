@@ -76,7 +76,9 @@ export const useDockerStore = defineStore('docker', {
         stoppedContainers: (state): Container[] => state.containers.filter(c => c.State === 'exited'),
         totalContainers: (state): number => state.containers.length,
         totalImages: (state): number => state.images.length,
-        totalVolumes: (state): number => state.volumes.length,
+        totalVolumes: (state): number => {
+            return state.volumes.length
+        },
         totalNetworks: (state): number => state.networks.length,
 
         // Group images by container usage
@@ -282,8 +284,10 @@ export const useDockerStore = defineStore('docker', {
         async fetchVolumes(): Promise<void> {
             try {
                 this.setLoading(true)
-                const volumesResponse = await apiService.getVolumes()
-                this.volumes = volumesResponse.Volumes || []
+                const volumesResponse: any = await apiService.getVolumes()
+
+                this.volumes = volumesResponse
+
                 this.setError(null)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')

@@ -257,7 +257,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Modal } from 'bootstrap'
 import { useDockerStore } from '../stores/docker'
 
@@ -266,131 +266,136 @@ const confirmationData = ref({})
 const pendingAction = ref(null)
 
 const showConfirmation = (title, message, type, icon, buttonText, buttonClass, action, warningMessage = null) => {
-    confirmationData.value = {
-        title,
-        message,
-        type,
-        icon,
-        buttonText,
-        buttonClass,
-        warningMessage
-    }
-    pendingAction.value = action
+  confirmationData.value = {
+    title,
+    message,
+    type,
+    icon,
+    buttonText,
+    buttonClass,
+    warningMessage
+  }
+  pendingAction.value = action
 
-    const modal = new Modal(document.getElementById('confirmationModal'))
-    modal.show()
+  const modal = new Modal(document.getElementById('confirmationModal'))
+  modal.show()
 }
 
 const confirmAction = () => {
-    if (pendingAction.value) {
-        pendingAction.value()
-        pendingAction.value = null
-    }
+  if (pendingAction.value) {
+    pendingAction.value()
+    pendingAction.value = null
+  }
 }
 
 const refreshNetworks = () => {
-    dockerStore.fetchNetworks()
+  dockerStore.fetchNetworks()
 }
 
 const formatDate = (dateString) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleString()
+  if (!dateString) return 'N/A'
+  return new Date(dateString).toLocaleString()
 }
 
 const getScopeBadgeClass = (scope) => {
-    switch (scope) {
-        case 'global':
-            return 'bg-success'
-        case 'local':
-            return 'bg-primary'
-        default:
-            return 'bg-secondary'
-    }
+  switch (scope) {
+    case 'global':
+      return 'bg-success'
+    case 'local':
+      return 'bg-primary'
+    default:
+      return 'bg-secondary'
+  }
 }
 
 const isSystemNetwork = (name) => {
-    const systemNetworks = ['bridge', 'host', 'none']
-    return systemNetworks.includes(name)
+  const systemNetworks = ['bridge', 'host', 'none']
+  return systemNetworks.includes(name)
 }
 
 const getRemoveTitle = (network) => {
-    if (network.isSystem) {
-        return 'Cannot remove system network'
-    }
-    if (network.containers.length > 0) {
-        return 'Cannot remove network with active containers'
-    }
-    return 'Remove Network'
+  if (network.isSystem) {
+    return 'Cannot remove system network'
+  }
+  if (network.containers.length > 0) {
+    return 'Cannot remove network with active containers'
+  }
+  return 'Remove Network'
 }
 
 const removeNetwork = (id, name) => {
-    if (isSystemNetwork(name)) {
-        showConfirmation(
-            'System Network',
-            `Cannot remove system network "${name}".`,
-            'info',
-            'bi-info-circle',
-            null,
-            null,
-            null,
-            'System networks (bridge, host, none) are required for Docker operation and cannot be removed.'
-        )
-        return
-    }
-
+  if (isSystemNetwork(name)) {
     showConfirmation(
-        'Remove Network',
-        `Are you sure you want to remove network "${name}"?`,
-        'danger',
-        'bi-trash',
-        'Remove',
-        'btn-danger',
-        () => dockerStore.removeNetwork(id)
+      'System Network',
+      `Cannot remove system network "${name}".`,
+      'info',
+      'bi-info-circle',
+      null,
+      null,
+      null,
+      'System networks (bridge, host, none) are required for Docker operation and cannot be removed.'
     )
+    return
+  }
+
+  showConfirmation(
+    'Remove Network',
+    `Are you sure you want to remove network "${name}"?`,
+    'danger',
+    'bi-trash',
+    'Remove',
+    'btn-danger',
+    () => dockerStore.removeNetwork(id)
+  )
 }
 
 const removeAllOrphanedNetworks = () => {
-    const orphanedCount = dockerStore.groupedNetworks.orphaned.length
+  const orphanedCount = dockerStore.groupedNetworks.orphaned.length
 
-    showConfirmation(
-        'Remove All Orphaned Networks',
-        `Remove all ${orphanedCount} orphaned networks? This will clean up unused network configurations.`,
-        'danger',
-        'bi-trash',
-        'Remove All',
-        'btn-danger',
-        () => {
-            dockerStore.groupedNetworks.orphaned.forEach(network => {
-                dockerStore.removeNetwork(network.Id)
-            })
-        }
-    )
+  showConfirmation(
+    'Remove All Orphaned Networks',
+    `Remove all ${orphanedCount} orphaned networks? This will clean up unused network configurations.`,
+    'danger',
+    'bi-trash',
+    'Remove All',
+    'btn-danger',
+    () => {
+      dockerStore.groupedNetworks.orphaned.forEach(network => {
+        dockerStore.removeNetwork(network.Id)
+      })
+    }
+  )
 }
+
+// Initialize networks on component mount
+onMounted(() => {
+  dockerStore.fetchNetworks()
+})
 </script>
 
 <style scoped>
 .card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 .table th {
-    border-top: none;
-    font-weight: 600;
+  border-top: none;
+  font-weight: 600;
 }
 
 .btn-group-sm .btn {
-    padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.5rem;
 }
 
 .btn:disabled {
-    opacity: 0.3;
+  opacity: 0.3;
 }
 
 code {
-    font-size: 0.875rem;
-    background-color: #f8f9fa;
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
+  font-size: 0.875rem;
+  background-color: #f8f9fa;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
 }
 </style>

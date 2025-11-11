@@ -287,7 +287,6 @@ const handleDesktopAppClick = async (protocol, event) => {
         // First, copy connection string to clipboard
         if (protocol.copyText) {
             await navigator.clipboard.writeText(protocol.copyText)
-            console.log('Copied to clipboard:', protocol.copyText)
         }
 
         // Try to open desktop application using custom protocol
@@ -322,8 +321,6 @@ const handleProtocolClick = async (protocol, event) => {
         if (!protocol || !protocol.copyText) return
 
         await navigator.clipboard.writeText(protocol.copyText)
-        // Simple feedback via console; UI toast can be added later
-        console.log('Copied to clipboard:', protocol.copyText)
 
         // Close dropdown and tooltip after copy
         const dropdown = event.target.closest('.dropdown-menu')

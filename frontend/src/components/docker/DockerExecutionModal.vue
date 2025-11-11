@@ -166,8 +166,6 @@ const copyOutput = async () => {
   try {
     if (props.executionResult && props.executionResult.output) {
       await navigator.clipboard.writeText(props.executionResult.output)
-      console.log('Output copied to clipboard')
-      // You could add a toast notification here
     }
   } catch (error) {
     console.error('Failed to copy output:', error)

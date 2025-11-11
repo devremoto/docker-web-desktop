@@ -696,8 +696,6 @@ const performExecution = async (processedCommand) => {
 const copyCommand = async (command) => {
     try {
         await navigator.clipboard.writeText(command)
-        // You could add a toast notification here
-        console.log('Command copied to clipboard:', command)
     } catch (error) {
         console.error('Failed to copy command:', error)
     }

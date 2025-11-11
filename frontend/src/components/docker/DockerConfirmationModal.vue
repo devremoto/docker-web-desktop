@@ -63,14 +63,11 @@ defineEmits(['confirmExecution'])
 
 const copyCommand = async () => {
     try {
-        // Get the raw command text without HTML formatting
         const tempDiv = document.createElement('div')
         tempDiv.innerHTML = props.displayCommand
         const commandText = tempDiv.textContent || tempDiv.innerText
 
         await navigator.clipboard.writeText(commandText)
-        console.log('Command copied to clipboard:', commandText)
-        // You could add a toast notification here
     } catch (error) {
         console.error('Failed to copy command:', error)
     }

@@ -154,7 +154,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDockerStore } from '../stores/docker'
 
@@ -162,70 +162,77 @@ const router = useRouter()
 const dockerStore = useDockerStore()
 
 const recentContainers = computed(() => {
-    return dockerStore.containers.slice(0, 5)
+  return dockerStore.containers.slice(0, 5)
 })
 
 const refreshAll = () => {
-    dockerStore.fetchAll()
+  dockerStore.fetchAll()
 }
 
 const navigateToContainers = () => {
-    router.push('/containers')
+  router.push('/containers')
 }
 
 const navigateToImages = () => {
-    router.push('/images')
+  router.push('/images')
 }
 
 const navigateToVolumes = () => {
-    router.push('/volumes')
+  router.push('/volumes')
 }
 
 const navigateToNetworks = () => {
-    router.push('/networks')
+  router.push('/networks')
 }
 
 const getContainerName = (container) => {
-    return container.Names?.[0]?.replace('/', '') || container.Id.slice(0, 12)
+  return container.Names?.[0]?.replace('/', '') || container.Id.slice(0, 12)
 }
 
 const getStatusBadgeClass = (status) => {
-    switch (status) {
-        case 'running':
-            return 'bg-success'
-        case 'exited':
-            return 'bg-secondary'
-        case 'paused':
-            return 'bg-warning'
-        default:
-            return 'bg-secondary'
-    }
+  switch (status) {
+    case 'running':
+      return 'bg-success'
+    case 'exited':
+      return 'bg-secondary'
+    case 'paused':
+      return 'bg-warning'
+    default:
+      return 'bg-secondary'
+  }
 }
 
 const formatDate = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleDateString()
+  return new Date(timestamp * 1000).toLocaleDateString()
 }
+
+// Initialize all data on component mount (redundant with App.vue but ensures data is loaded)
+onMounted(() => {
+  if (dockerStore.totalVolumes === 0 || dockerStore.totalImages === 0 || dockerStore.totalNetworks === 0) {
+    dockerStore.fetchAll()
+  }
+})
 </script>
 
 <style scoped>
 .cursor-pointer {
-    cursor: pointer;
-    transition: transform 0.2s ease-in-out;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
 }
 
 .cursor-pointer:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
 }
 
 .card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    min-height: 130px;
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  min-height: 130px;
 }
 
 .card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
 }
 </style>

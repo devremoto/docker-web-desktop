@@ -232,7 +232,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Modal } from 'bootstrap'
 import { useDockerStore } from '../stores/docker'
 
@@ -241,86 +241,91 @@ const confirmationData = ref({})
 const pendingAction = ref(null)
 
 const showConfirmation = (title, message, type, icon, buttonText, buttonClass, action) => {
-    confirmationData.value = {
-        title,
-        message,
-        type,
-        icon,
-        buttonText,
-        buttonClass
-    }
-    pendingAction.value = action
+  confirmationData.value = {
+    title,
+    message,
+    type,
+    icon,
+    buttonText,
+    buttonClass
+  }
+  pendingAction.value = action
 
-    const modal = new Modal(document.getElementById('confirmationModal'))
-    modal.show()
+  const modal = new Modal(document.getElementById('confirmationModal'))
+  modal.show()
 }
 
 const confirmAction = () => {
-    if (pendingAction.value) {
-        pendingAction.value()
-        pendingAction.value = null
-    }
+  if (pendingAction.value) {
+    pendingAction.value()
+    pendingAction.value = null
+  }
 }
 
 const refreshVolumes = () => {
-    dockerStore.fetchVolumes()
+  dockerStore.fetchVolumes()
 }
 
 const formatDate = (dateString) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleString()
+  if (!dateString) return 'N/A'
+  return new Date(dateString).toLocaleString()
 }
 
 const removeVolume = (name) => {
-    showConfirmation(
-        'Remove Volume',
-        `Are you sure you want to remove volume "${name}"?`,
-        'danger',
-        'bi-trash',
-        'Remove',
-        'btn-danger',
-        () => dockerStore.removeVolume(name)
-    )
+  showConfirmation(
+    'Remove Volume',
+    `Are you sure you want to remove volume "${name}"?`,
+    'danger',
+    'bi-trash',
+    'Remove',
+    'btn-danger',
+    () => dockerStore.removeVolume(name)
+  )
 }
 
 const removeAllOrphanedVolumes = () => {
-    const orphanedCount = dockerStore.groupedVolumes.orphaned.length
+  const orphanedCount = dockerStore.groupedVolumes.orphaned.length
 
-    showConfirmation(
-        'Remove All Orphaned Volumes',
-        `Remove all ${orphanedCount} orphaned volumes? This will permanently delete all unused volume data.`,
-        'danger',
-        'bi-trash',
-        'Remove All',
-        'btn-danger',
-        () => {
-            dockerStore.groupedVolumes.orphaned.forEach(volume => {
-                dockerStore.removeVolume(volume.Name)
-            })
-        }
-    )
+  showConfirmation(
+    'Remove All Orphaned Volumes',
+    `Remove all ${orphanedCount} orphaned volumes? This will permanently delete all unused volume data.`,
+    'danger',
+    'bi-trash',
+    'Remove All',
+    'btn-danger',
+    () => {
+      dockerStore.groupedVolumes.orphaned.forEach(volume => {
+        dockerStore.removeVolume(volume.Name)
+      })
+    }
+  )
 }
+
+// Initialize volumes on component mount
+onMounted(() => {
+  dockerStore.fetchVolumes()
+})
 </script>
 
 <style scoped>
 .card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 .table th {
-    border-top: none;
-    font-weight: 600;
+  border-top: none;
+  font-weight: 600;
 }
 
 .btn-group-sm .btn {
-    padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.5rem;
 }
 
 code {
-    font-size: 0.875rem;
-    background-color: #f8f9fa;
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
+  font-size: 0.875rem;
+  background-color: #f8f9fa;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
 }
 </style>

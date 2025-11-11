@@ -101,7 +101,6 @@ import Environment from '@/utils/environment'
 
 // Get configuration
 const config = Environment.config
-console.log(config.apiBaseUrl)
 
 // Logging with environment-aware levels
 Environment.debug('Debug message')

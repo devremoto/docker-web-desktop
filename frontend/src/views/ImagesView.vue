@@ -240,130 +240,135 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useDockerStore } from '../stores/docker'
 import { Modal } from 'bootstrap'
 
 const dockerStore = useDockerStore()
 const confirmationData = ref({
-    title: '',
-    message: '',
-    icon: '',
-    type: '',
-    buttonText: '',
-    buttonClass: '',
-    action: null
+  title: '',
+  message: '',
+  icon: '',
+  type: '',
+  buttonText: '',
+  buttonClass: '',
+  action: null
 })
 
 const refreshImages = () => {
-    dockerStore.fetchImages()
+  dockerStore.fetchImages()
 }
 
 const showConfirmation = (title, message, icon, type, buttonText, buttonClass, action) => {
-    confirmationData.value = {
-        title,
-        message,
-        icon,
-        type,
-        buttonText,
-        buttonClass,
-        action
-    }
+  confirmationData.value = {
+    title,
+    message,
+    icon,
+    type,
+    buttonText,
+    buttonClass,
+    action
+  }
 
-    const modalElement = document.getElementById('confirmationModal')
-    if (modalElement) {
-        const modal = new Modal(modalElement)
-        modal.show()
-    }
+  const modalElement = document.getElementById('confirmationModal')
+  if (modalElement) {
+    const modal = new Modal(modalElement)
+    modal.show()
+  }
 }
 
 const confirmAction = () => {
-    if (confirmationData.value.action) {
-        confirmationData.value.action()
-    }
+  if (confirmationData.value.action) {
+    confirmationData.value.action()
+  }
 }
 
 const getRepository = (image) => {
-    if (image.RepoTags && image.RepoTags.length > 0) {
-        return image.RepoTags[0].split(':')[0] || '<none>'
-    }
-    return '<none>'
+  if (image.RepoTags && image.RepoTags.length > 0) {
+    return image.RepoTags[0].split(':')[0] || '<none>'
+  }
+  return '<none>'
 }
 
 const getTag = (image) => {
-    if (image.RepoTags && image.RepoTags.length > 0) {
-        return image.RepoTags[0].split(':')[1] || '<none>'
-    }
-    return '<none>'
+  if (image.RepoTags && image.RepoTags.length > 0) {
+    return image.RepoTags[0].split(':')[1] || '<none>'
+  }
+  return '<none>'
 }
 
 const formatDate = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleString()
+  return new Date(timestamp * 1000).toLocaleString()
 }
 
 const formatSize = (bytes) => {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 const removeImage = (id) => {
-    const image = dockerStore.images.find(img => img.Id === id)
-    const imageName = getRepository(image) + ':' + getTag(image)
+  const image = dockerStore.images.find(img => img.Id === id)
+  const imageName = getRepository(image) + ':' + getTag(image)
 
-    showConfirmation(
-        'Remove Image',
-        `Remove image "${imageName}"?`,
-        'bi-trash',
-        'danger',
-        'Remove',
-        'btn-danger',
-        () => {
-            dockerStore.removeImage(id)
-        }
-    )
+  showConfirmation(
+    'Remove Image',
+    `Remove image "${imageName}"?`,
+    'bi-trash',
+    'danger',
+    'Remove',
+    'btn-danger',
+    () => {
+      dockerStore.removeImage(id)
+    }
+  )
 }
 
 const removeAllOrphanedImages = () => {
-    const orphanedCount = dockerStore.groupedImages.orphaned.length
+  const orphanedCount = dockerStore.groupedImages.orphaned.length
 
-    showConfirmation(
-        'Remove All Orphaned Images',
-        `Remove all ${orphanedCount} orphaned images? This will free up disk space.`,
-        'bi-trash',
-        'danger',
-        'Remove All',
-        'btn-danger',
-        () => {
-            dockerStore.groupedImages.orphaned.forEach(image => {
-                dockerStore.removeImage(image.Id)
-            })
-        }
-    )
+  showConfirmation(
+    'Remove All Orphaned Images',
+    `Remove all ${orphanedCount} orphaned images? This will free up disk space.`,
+    'bi-trash',
+    'danger',
+    'Remove All',
+    'btn-danger',
+    () => {
+      dockerStore.groupedImages.orphaned.forEach(image => {
+        dockerStore.removeImage(image.Id)
+      })
+    }
+  )
 }
+
+// Initialize images on component mount
+onMounted(() => {
+  dockerStore.fetchImages()
+})
 </script>
 
 <style scoped>
 .card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 .table th {
-    border-top: none;
-    font-weight: 600;
+  border-top: none;
+  font-weight: 600;
 }
 
 .btn-group-sm .btn {
-    padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.5rem;
 }
 
 code {
-    font-size: 0.875rem;
-    background-color: #f8f9fa;
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
+  font-size: 0.875rem;
+  background-color: #f8f9fa;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
 }
 </style>

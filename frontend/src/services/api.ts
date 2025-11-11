@@ -3,7 +3,6 @@ import axios, { type AxiosInstance } from 'axios'
 import { io, type Socket } from 'socket.io-client'
 
 let BASE_URL = Environment.config.apiBaseUrl
-console.log('META', import.meta.env)
 
 interface ProcessedCommand {
     command: string
