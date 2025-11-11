@@ -53,6 +53,13 @@
               </li>
               <li><hr class="dropdown-divider"></li>
               <li>
+                <button class="dropdown-item" @click="toggleTheme">
+                  <i :class="currentTheme === 'dark' ? 'bi bi-sun-fill me-2' : 'bi bi-moon-fill me-2'"></i>
+                  {{ currentTheme === 'dark' ? 'Light Mode' : 'Dark Mode' }}
+                </button>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
                 <a class="dropdown-item" href="https://github.com/devremoto/docker-web-desktop" target="_blank" rel="noopener noreferrer" @click="closeDropdown">
                   <i class="bi bi-github me-2"></i>GitHub Repository
                 </a>
@@ -70,11 +77,12 @@
   </nav>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const dropdownOpen = ref(false)
-const dropdownContainer = ref(null)
+const dropdownContainer = ref<HTMLElement | null>(null)
+const currentTheme = ref<'light' | 'dark'>('light')
 
 const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value
@@ -84,15 +92,26 @@ const closeDropdown = () => {
   dropdownOpen.value = false
 }
 
+const toggleTheme = () => {
+  const newTheme = currentTheme.value === 'light' ? 'dark' : 'light'
+  currentTheme.value = newTheme
+  document.documentElement.setAttribute('data-bs-theme', newTheme)
+  localStorage.setItem('theme', newTheme)
+  closeDropdown()
+}
+
 // Close dropdown when clicking outside
-const handleClickOutside = (event) => {
-  if (dropdownContainer.value && !dropdownContainer.value.contains(event.target)) {
+const handleClickOutside = (event: Event) => {
+  if (dropdownContainer.value && !dropdownContainer.value.contains(event.target as Node)) {
     closeDropdown()
   }
 }
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  // Initialize current theme from document
+  const theme = document.documentElement.getAttribute('data-bs-theme')
+  currentTheme.value = theme === 'dark' ? 'dark' : 'light'
 })
 
 onUnmounted(() => {
@@ -133,6 +152,14 @@ onUnmounted(() => {
 .dropdown-item:hover {
   background-color: #f8f9fa;
   color: #495057;
+}
+
+.dropdown-item.btn,
+.dropdown-item[type="button"] {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
 }
 
 .dropdown-item i {

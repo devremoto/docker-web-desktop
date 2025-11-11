@@ -1,5 +1,5 @@
 <template>
-  <nav class="sidebar bg-light border-end">
+  <nav class="sidebar border-end">
     <div class="sidebar-header p-3 border-bottom">
       <h5 class="mb-0">Docker Management</h5>
     </div>
@@ -133,26 +133,33 @@ const dockerStore = useDockerStore()
   /* Adjust for navbar height */
   position: sticky;
   top: 0;
+  background-color: var(--bs-sidebar-bg) !important;
+  border-color: var(--bs-sidebar-border) !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .sidebar-header {
-  background-color: #e9ecef;
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color) !important;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .nav-link {
-  color: #495057;
+  color: var(--bs-nav-link-color);
   border-radius: 0.5rem;
   margin-bottom: 0.25rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .nav-link:hover {
-  background-color: #e9ecef;
-  color: #495057;
+  background-color: var(--bs-nav-link-hover-bg);
+  color: var(--bs-nav-link-color);
 }
 
 .nav-link.active {
-  background-color: #0d6efd;
-  color: white;
+  background-color: #0d6efd !important;
+  color: white !important;
 }
 
 .badge {
@@ -161,7 +168,14 @@ const dockerStore = useDockerStore()
 
 .nav-separator {
   margin: 0.5rem 1rem;
-  border-color: #dee2e6;
+  border-color: var(--bs-border-color);
   opacity: 0.5;
+  transition: border-color 0.3s ease;
+}
+
+/* Ensure sidebar title is visible in dark mode */
+.sidebar-header h5 {
+  color: var(--bs-body-color);
+  transition: color 0.3s ease;
 }
 </style>

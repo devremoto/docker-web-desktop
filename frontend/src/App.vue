@@ -63,10 +63,14 @@ onUnmounted(() => {
 <style scoped>
 .app {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--bs-app-bg);
+  color: var(--bs-body-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 main {
   padding-top: 20px;
+  background-color: var(--bs-body-bg);
+  transition: background-color 0.3s ease;
 }
 </style>

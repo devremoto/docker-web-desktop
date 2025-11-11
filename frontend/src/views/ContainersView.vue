@@ -645,8 +645,8 @@ const showComposeModal = (fileName, content) => {
     `
 
   const modalContent = document.createElement('div')
+  modalContent.className = 'compose-modal-content'
   modalContent.style.cssText = `
-        background: white !important;
         padding: 1.5rem !important;
         border-radius: 0.5rem !important;
         max-width: 90vw !important;
@@ -660,17 +660,17 @@ const showComposeModal = (fileName, content) => {
     `
 
   modalContent.innerHTML = `
-        <div style="display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 1rem !important; padding-bottom: 0.5rem !important; border-bottom: 1px solid #dee2e6 !important;">
-            <h5 style="margin: 0 !important; color: #333 !important; font-weight: 600 !important;">
+        <div class="compose-modal-header" style="display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 1rem !important; padding-bottom: 0.5rem !important;">
+            <h5 class="compose-modal-title" style="margin: 0 !important; font-weight: 600 !important;">
                 <i class="bi bi-file-earmark-code"></i> ${fileName}
             </h5>
-            <button class="close-btn" style="background: none !important; border: none !important; font-size: 1.5rem !important; cursor: pointer !important; color: #6c757d !important; padding: 0 !important; width: 30px !important; height: 30px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 50% !important;">&times;</button>
+            <button class="close-btn compose-close-btn" style="background: none !important; border: none !important; font-size: 1.5rem !important; cursor: pointer !important; padding: 0 !important; width: 30px !important; height: 30px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 50% !important;">&times;</button>
         </div>
         <div style="flex: 1 !important; overflow: auto !important;">
-            <pre style="background: #f8f9fa !important; padding: 1rem !important; border-radius: 0.25rem !important; margin: 0 !important; white-space: pre-wrap !important; word-wrap: break-word !important; font-family: 'Courier New', monospace !important; font-size: 14px !important; line-height: 1.4 !important; color: #495057 !important; height: 100% !important; overflow: auto !important;">${content}</pre>
+            <pre class="compose-code-content" style="padding: 1rem !important; border-radius: 0.25rem !important; margin: 0 !important; white-space: pre-wrap !important; word-wrap: break-word !important; font-family: 'Courier New', monospace !important; font-size: 14px !important; line-height: 1.4 !important; height: 100% !important; overflow: auto !important;">${content}</pre>
         </div>
-        <div style="display: flex !important; justify-content: flex-end !important; padding-top: 0.5rem !important; border-top: 1px solid #dee2e6 !important; margin-top: 1rem !important;">
-            <button class="btn-close" style="background: #007bff !important; color: white !important; border: none !important; padding: 0.5rem 1rem !important; border-radius: 0.25rem !important; cursor: pointer !important; font-weight: 500 !important;">Close</button>
+        <div class="compose-modal-footer" style="display: flex !important; justify-content: flex-end !important; padding-top: 0.5rem !important; margin-top: 1rem !important;">
+            <button class="btn btn-close compose-btn-close" style="border: none !important; padding: 0.5rem 1rem !important; border-radius: 0.25rem !important; cursor: pointer !important; font-weight: 500 !important;">Close</button>
         </div>
     `
 
@@ -691,21 +691,19 @@ const showComposeModal = (fileName, content) => {
     if (e.target === modal) closeModal()
   })
 
-  // Add hover effects
+  // Add hover effects with CSS classes for theme compatibility
   closeBtn.addEventListener('mouseenter', () => {
-    closeBtn.style.backgroundColor = '#f8f9fa'
-    closeBtn.style.color = '#495057'
+    closeBtn.classList.add('compose-close-hover')
   })
   closeBtn.addEventListener('mouseleave', () => {
-    closeBtn.style.backgroundColor = 'transparent'
-    closeBtn.style.color = '#6c757d'
+    closeBtn.classList.remove('compose-close-hover')
   })
 
   closeButton.addEventListener('mouseenter', () => {
-    closeButton.style.backgroundColor = '#0056b3'
+    closeButton.classList.add('compose-btn-hover')
   })
   closeButton.addEventListener('mouseleave', () => {
-    closeButton.style.backgroundColor = '#007bff'
+    closeButton.classList.remove('compose-btn-hover')
   })
 
   // Handle escape key
@@ -815,7 +813,7 @@ const showLogs = async (container) => {
 
   try {
     const response = await apiService.getContainerLogs(container.Id, 100)
-    containerLogs.value = response.logs || 'No logs available'
+    containerLogs.value = response || 'No logs available'
   } catch (error) {
     console.error('Error loading logs:', error)
     containerLogs.value = `Error loading logs: ${error.message || 'Unknown error'}`
@@ -847,18 +845,18 @@ onMounted(() => {
   background-color: #f8f9fa;
 }
 
-.group-header {
-  background-color: #f8f9fa !important;
+[data-bs-theme="light"] .group-header {
+  background-color: #f8f9fa;
   border-top: 2px solid #dee2e6;
   transition: background-color 0.15s ease-in-out;
 }
 
-.group-header:hover {
-  background-color: #e9ecef !important;
+[data-bs-theme="light"].group-header:hover {
+  background-color: #e9ecef;
 }
 
-.group-header.cursor-pointer:hover {
-  background-color: #dee2e6 !important;
+[data-bs-theme="light"].group-header.cursor-pointer:hover {
+  background-color: #dee2e6;
 }
 
 .group-container {
@@ -866,7 +864,7 @@ onMounted(() => {
 }
 
 .group-container:hover {
-  background-color: #f0f0f0 !important;
+  background-color: #f0f0f0;
 }
 
 .btn-link {
