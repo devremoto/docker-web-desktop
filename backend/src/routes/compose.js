@@ -2,7 +2,15 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
+const { exec } = require('child_process');
 
+function sanitizeCompose(command) {
+    var result = command.split('&|;')[0].trim();
+    if (!command.startsWith('docker-compose')) {
+        throw new Error('Only Docker commands are allowed. Commands must start with "docker-compose".');
+    }
+    return result;
+}
 // Get docker-compose file content
 router.post('/file', async (req, res) => {
     try {
@@ -100,6 +108,43 @@ router.post('/file', async (req, res) => {
         console.error('Error reading compose file:', error);
         res.status(500).json({
             error: 'Failed to read compose file',
+            details: error.message
+        });
+    }
+});
+
+router.post('/execute', async (req, res) => {
+    try {
+        const { command } = req.body;
+
+        if (!command) {
+            return res.status(400).json({ error: 'Command is required' });
+        }
+
+        // Only allow docker-compose commands
+        const sanitizedCommand = sanitizeCompose(command);
+
+        exec(sanitizedCommand, { timeout: 30000 }, (error, stdout, stderr) => {
+            if (error) {
+                const errorOutput = stderr || error.message;
+                return res.json({
+                    success: false,
+                    command: sanitizedCommand,
+                    output: errorOutput,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            const output = stdout || (stderr && stderr.trim() ? stderr : 'Command executed successfully');
+            res.json({
+                success: true,
+                command: sanitizedCommand,
+                output: output,
+                timestamp: new Date().toISOString()
+            });
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: 'Failed to execute docker-compose command',
             details: error.message
         });
     }

@@ -169,7 +169,7 @@
             <h5 class="mb-0">Container Inspection</h5>
           </div>
           <div class="card-body">
-            <pre class="inspect-container">{{ inspectData }}</pre>
+            <div class="inspect-container inspect-json" v-html="highlightedInspectData"></div>
           </div>
         </div>
       </div>
@@ -441,380 +441,464 @@ import { useRoute } from 'vue-router'
 import apiService from '../services/api'
 
 export default {
-    name: 'ContainerDetailsView',
-    setup() {
-        const route = useRoute()
-        const containerId = computed(() => route.params.id)
+  name: 'ContainerDetailsView',
+  setup() {
+    const route = useRoute()
+    const containerId = computed(() => route.params.id)
 
-        // Reactive data
-        const container = ref({})
-        const logs = ref('')
-        const inspectData = ref('')
-        const loading = ref(false)
-        const execCommand = ref('')
-        const execOutput = ref('')
-        const currentPath = ref('/')
-        const files = ref([])
-        const mounts = ref([])
-        const stats = ref({
-            cpuPercentage: 0,
-            memoryPercentage: 0,
-            memoryUsage: 0,
-            memoryLimit: 0,
-            networkRx: 0,
-            networkTx: 0,
-            blockRead: 0,
-            blockWrite: 0
-        })
+    // Reactive data
+    const container = ref({})
+    const logs = ref('')
+    const inspectData = ref('')
+    // Highlighted JSON for inspect tab
+    const highlightedInspectData = computed(() => {
 
-        // Computed properties
-        const containerName = computed(() => {
-            return container.value.Names?.[0]?.replace('/', '') || containerId.value
-        })
+      if (!inspectData.value) return ''
+      return syntaxHighlightJson(inspectData.value)
+    })
+    const loading = ref(false)
+    const execCommand = ref('')
+    const execOutput = ref('')
+    const currentPath = ref('/')
+    const files = ref([])
+    const mounts = ref([])
+    const stats = ref({
+      cpuPercentage: 0,
+      memoryPercentage: 0,
+      memoryUsage: 0,
+      memoryLimit: 0,
+      networkRx: 0,
+      networkTx: 0,
+      blockRead: 0,
+      blockWrite: 0
+    })
 
-        const containerStatus = computed(() => {
-            return container.value.State || 'Unknown'
-        })
+    // Computed properties
+    const containerName = computed(() => {
+      return container.value.Names?.[0]?.replace('/', '') || containerId.value
+    })
 
-        const statusBadgeClass = computed(() => {
-            const state = container.value.State
-            if (state === 'running') return 'bg-success'
-            if (state === 'exited') return 'bg-danger'
-            if (state === 'paused') return 'bg-warning'
-            return 'bg-secondary'
-        })
+    const containerStatus = computed(() => {
+      return container.value.State || 'Unknown'
+    })
 
-        const isRunning = computed(() => {
-            return container.value.State === 'running'
-        })
+    const statusBadgeClass = computed(() => {
+      const state = container.value.State
+      if (state === 'running') return 'bg-success'
+      if (state === 'exited') return 'bg-danger'
+      if (state === 'paused') return 'bg-warning'
+      return 'bg-secondary'
+    })
 
-        // Intervals for real-time updates
-        let statsInterval = null
-        let logsInterval = null
+    const isRunning = computed(() => {
+      return container.value.State === 'running'
+    })
 
-        // Methods
-        const loadContainer = async () => {
-            try {
-                const containers = await apiService.getContainers()
-                container.value = containers.find(c => c.Id === containerId.value) || {}
-            } catch (error) {
-                console.error('Error loading container:', error)
-            }
-        }
+    // Intervals for real-time updates
+    let statsInterval = null
+    let logsInterval = null
 
-        const loadLogs = async () => {
-            try {
-                const response = await apiService.getContainerLogs(containerId.value)
-                logs.value = response
-            } catch (error) {
-                console.error('Error loading logs:', error)
-                logs.value = 'Error loading logs: ' + error.message
-            }
-        }
+    // Methods
+    // JSON syntax highlighter
+    function syntaxHighlightJson(jsonString) {
+      if (!jsonString) return ''
 
-        const loadInspect = async () => {
-            try {
-                const response = await apiService.inspectContainer(containerId.value)
-                inspectData.value = JSON.stringify(response, null, 2)
-                // Extract mounts information
-                if (response.Mounts) {
-                    mounts.value = response.Mounts
-                }
-            } catch (error) {
-                console.error('Error inspecting container:', error)
-                inspectData.value = 'Error inspecting container: ' + error.message
-            }
-        }
+      let result = jsonString
 
-        const loadStats = async () => {
-            try {
-                const response = await apiService.getContainerStats(containerId.value)
-                if (response) {
-                    stats.value = {
-                        cpuPercentage: parseFloat(response.cpuPercentage || 0).toFixed(1),
-                        memoryPercentage: parseFloat(response.memoryPercentage || 0).toFixed(1),
-                        memoryUsage: response.memoryUsage || 0,
-                        memoryLimit: response.memoryLimit || 0,
-                        networkRx: response.networkRx || 0,
-                        networkTx: response.networkTx || 0,
-                        blockRead: response.blockRead || 0,
-                        blockWrite: response.blockWrite || 0
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading stats:', error)
-            }
-        }
+      // Step 1: Highlight property keys (quoted strings followed by colon)
+      result = result.replace(/"([^"]+)"\s*:/g, '<span class="json-key">"$1"</span>:')
 
-        const loadFiles = async (path = '/') => {
-            try {
-                const response = await apiService.getContainerFiles(containerId.value, path)
-                files.value = response || []
-                currentPath.value = path
-            } catch (error) {
-                console.error('Error loading files:', error)
-                files.value = []
-            }
-        }
+      // Step 2: Highlight string values after colons (property values) - must not be inside spans
+      result = result.replace(/:\s*"([^"]*)"/g, function (match) {
+        if (match.includes('<span')) return match
+        return match.replace(/"([^"]*)"/, '<span class="json-string">"$1"</span>')
+      })
 
-        const startContainer = async () => {
-            loading.value = true
-            try {
-                await apiService.startContainer(containerId.value)
-                await loadContainer()
-            } catch (error) {
-                console.error('Error starting container:', error)
-            } finally {
-                loading.value = false
-            }
-        }
+      // Step 3: Highlight string values in arrays - must not be inside spans
+      result = result.replace(/\[\s*"([^"]*)"/g, function (match) {
+        if (match.includes('<span')) return match
+        return match.replace(/"([^"]*)"/, '<span class="json-string">"$1"</span>')
+      })
+      result = result.replace(/,\s*"([^"]*)"/g, function (match) {
+        if (match.includes('<span')) return match
+        return match.replace(/"([^"]*)"/, '<span class="json-string">"$1"</span>')
+      })
 
-        const stopContainer = async () => {
-            loading.value = true
-            try {
-                await apiService.stopContainer(containerId.value)
-                await loadContainer()
-            } catch (error) {
-                console.error('Error stopping container:', error)
-            } finally {
-                loading.value = false
-            }
-        }
+      // Step 4: Highlight standalone numbers (not inside quoted strings)
+      result = result.replace(/:\s*(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)(?=\s*[,\}\]])/g, ': <span class="json-number">$1</span>')
+      result = result.replace(/\[\s*(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)(?=\s*[,\]])/g, '[<span class="json-number">$1</span>')
+      result = result.replace(/,\s*(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)(?=\s*[,\}\]])/g, ', <span class="json-number">$1</span>')
 
-        const restartContainer = async () => {
-            loading.value = true
-            try {
-                await apiService.restartContainer(containerId.value)
-                await loadContainer()
-            } catch (error) {
-                console.error('Error restarting container:', error)
-            } finally {
-                loading.value = false
-            }
-        }
+      // Step 5: Highlight booleans (not inside quoted strings or spans)
+      result = result.replace(/:\s*(true|false)(?=\s*[,\}\]])/g, ': <span class="json-boolean">$1</span>')
+      result = result.replace(/\[\s*(true|false)(?=\s*[,\]])/g, '[<span class="json-boolean">$1</span>')
+      result = result.replace(/,\s*(true|false)(?=\s*[,\}\]])/g, ', <span class="json-boolean">$1</span>')
 
-        const executeCommand = async () => {
-            if (!execCommand.value.trim()) return
+      // Step 6: Highlight null (not inside quoted strings or spans)
+      result = result.replace(/:\s*(null)(?=\s*[,\}\]])/g, ': <span class="json-null">$1</span>')
+      result = result.replace(/\[\s*(null)(?=\s*[,\]])/g, '[<span class="json-null">$1</span>')
+      result = result.replace(/,\s*(null)(?=\s*[,\}\]])/g, ', <span class="json-null">$1</span>')
 
-            try {
-                const response = await apiService.execContainer(containerId.value, execCommand.value)
-                execOutput.value += `$ ${execCommand.value}\n${response}\n\n`
-                execCommand.value = ''
-            } catch (error) {
-                console.error('Error executing command:', error)
-                execOutput.value += `$ ${execCommand.value}\nError: ${error.message}\n\n`
-                execCommand.value = ''
-            }
-        }
-
-        const clearLogs = () => {
-            logs.value = ''
-        }
-
-        const refreshLogs = async () => {
-            await loadLogs()
-        }
-
-        const refreshFiles = async () => {
-            await loadFiles(currentPath.value)
-        }
-
-        const navigateUp = () => {
-            const pathParts = currentPath.value.split('/').filter(p => p)
-            pathParts.pop()
-            const newPath = '/' + pathParts.join('/')
-            loadFiles(newPath === '/' ? '/' : newPath)
-        }
-
-        const navigateToFile = (file) => {
-            if (file.type === 'directory') {
-                const newPath = currentPath.value === '/'
-                    ? `/${file.name}`
-                    : `${currentPath.value}/${file.name}`
-                loadFiles(newPath)
-            }
-        }
-
-        const downloadFile = async (file) => {
-            try {
-                const filePath = currentPath.value === '/'
-                    ? `/${file.name}`
-                    : `${currentPath.value}/${file.name}`
-                await apiService.downloadContainerFile(containerId.value, filePath)
-            } catch (error) {
-                console.error('Error downloading file:', error)
-            }
-        }
-
-        // Utility methods
-        const getFileIcon = (file) => {
-            if (file.type === 'directory') return 'bi bi-folder-fill text-warning'
-            if (file.name.endsWith('.txt') || file.name.endsWith('.log')) return 'bi bi-file-text text-info'
-            if (file.name.endsWith('.json') || file.name.endsWith('.xml')) return 'bi bi-file-code text-success'
-            if (file.name.endsWith('.jpg') || file.name.endsWith('.png') || file.name.endsWith('.gif')) return 'bi bi-file-image text-primary'
-            return 'bi bi-file text-secondary'
-        }
-
-        const formatFileSize = (bytes) => {
-            if (bytes === 0 || bytes === undefined) return '-'
-            const k = 1024
-            const sizes = ['Bytes', 'KB', 'MB', 'GB']
-            const i = Math.floor(Math.log(bytes) / Math.log(k))
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-        }
-
-        const formatBytes = (bytes) => {
-            if (bytes === 0 || bytes === undefined) return '0 B'
-            const k = 1024
-            const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-            const i = Math.floor(Math.log(bytes) / Math.log(k))
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-        }
-
-        const formatDate = (date) => {
-            if (!date) return '-'
-            return new Date(date).toLocaleString()
-        }
-
-        const getCpuProgressClass = (percentage) => {
-            if (percentage > 80) return 'bg-danger'
-            if (percentage > 60) return 'bg-warning'
-            return 'bg-success'
-        }
-
-        const getMemoryProgressClass = (percentage) => {
-            if (percentage > 85) return 'bg-danger'
-            if (percentage > 70) return 'bg-warning'
-            return 'bg-info'
-        }
-
-        // Lifecycle
-        onMounted(async () => {
-            await loadContainer()
-            await loadLogs()
-            await loadInspect()
-            await loadFiles()
-            await loadStats()
-
-            // Set up real-time updates
-            statsInterval = setInterval(loadStats, 5000) // Update stats every 5 seconds
-            logsInterval = setInterval(loadLogs, 10000) // Update logs every 10 seconds
-        })
-
-        onUnmounted(() => {
-            if (statsInterval) clearInterval(statsInterval)
-            if (logsInterval) clearInterval(logsInterval)
-        })
-
-        return {
-            containerId,
-            container,
-            containerName,
-            containerStatus,
-            statusBadgeClass,
-            isRunning,
-            loading,
-            logs,
-            inspectData,
-            execCommand,
-            execOutput,
-            currentPath,
-            files,
-            mounts,
-            stats,
-            startContainer,
-            stopContainer,
-            restartContainer,
-            executeCommand,
-            clearLogs,
-            refreshLogs,
-            refreshFiles,
-            navigateUp,
-            navigateToFile,
-            downloadFile,
-            getFileIcon,
-            formatFileSize,
-            formatBytes,
-            formatDate,
-            getCpuProgressClass,
-            getMemoryProgressClass
-        }
+      return result
     }
+    const loadContainer = async () => {
+      try {
+        const containers = await apiService.getContainers()
+        container.value = containers.find(c => c.Id === containerId.value) || {}
+      } catch (error) {
+        console.error('Error loading container:', error)
+      }
+    }
+
+    const loadLogs = async () => {
+      try {
+        const response = await apiService.getContainerLogs(containerId.value)
+        logs.value = response
+      } catch (error) {
+        console.error('Error loading logs:', error)
+        logs.value = 'Error loading logs: ' + error.message
+      }
+    }
+
+    const loadInspect = async () => {
+      try {
+        const response = await apiService.inspectContainer(containerId.value)
+        inspectData.value = JSON.stringify(response, null, 2)
+        // Extract mounts information
+        if (response.Mounts) {
+          mounts.value = response.Mounts
+        }
+      } catch (error) {
+        console.error('Error inspecting container:', error)
+        inspectData.value = 'Error inspecting container: ' + error.message
+      }
+    }
+
+    const loadStats = async () => {
+      try {
+        const response = await apiService.getContainerStats(containerId.value)
+        if (response) {
+          stats.value = {
+            cpuPercentage: parseFloat(response.cpuPercentage || 0).toFixed(1),
+            memoryPercentage: parseFloat(response.memoryPercentage || 0).toFixed(1),
+            memoryUsage: response.memoryUsage || 0,
+            memoryLimit: response.memoryLimit || 0,
+            networkRx: response.networkRx || 0,
+            networkTx: response.networkTx || 0,
+            blockRead: response.blockRead || 0,
+            blockWrite: response.blockWrite || 0
+          }
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error)
+      }
+    }
+
+    const loadFiles = async (path = '/') => {
+      try {
+        const response = await apiService.getContainerFiles(containerId.value, path)
+        files.value = response || []
+        currentPath.value = path
+      } catch (error) {
+        console.error('Error loading files:', error)
+        files.value = []
+      }
+    }
+
+    const startContainer = async () => {
+      loading.value = true
+      try {
+        await apiService.startContainer(containerId.value)
+        await loadContainer()
+      } catch (error) {
+        console.error('Error starting container:', error)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const stopContainer = async () => {
+      loading.value = true
+      try {
+        await apiService.stopContainer(containerId.value)
+        await loadContainer()
+      } catch (error) {
+        console.error('Error stopping container:', error)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const restartContainer = async () => {
+      loading.value = true
+      try {
+        await apiService.restartContainer(containerId.value)
+        await loadContainer()
+      } catch (error) {
+        console.error('Error restarting container:', error)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const executeCommand = async () => {
+      if (!execCommand.value.trim()) return
+
+      try {
+        const response = await apiService.execContainer(containerId.value, execCommand.value)
+        execOutput.value += `$ ${execCommand.value}\n${response}\n\n`
+        execCommand.value = ''
+      } catch (error) {
+        console.error('Error executing command:', error)
+        execOutput.value += `$ ${execCommand.value}\nError: ${error.message}\n\n`
+        execCommand.value = ''
+      }
+    }
+
+    const clearLogs = () => {
+      logs.value = ''
+    }
+
+    const refreshLogs = async () => {
+      await loadLogs()
+    }
+
+    const refreshFiles = async () => {
+      await loadFiles(currentPath.value)
+    }
+
+    const navigateUp = () => {
+      const pathParts = currentPath.value.split('/').filter(p => p)
+      pathParts.pop()
+      const newPath = '/' + pathParts.join('/')
+      loadFiles(newPath === '/' ? '/' : newPath)
+    }
+
+    const navigateToFile = (file) => {
+      if (file.type === 'directory') {
+        const newPath = currentPath.value === '/'
+          ? `/${file.name}`
+          : `${currentPath.value}/${file.name}`
+        loadFiles(newPath)
+      }
+    }
+
+    const downloadFile = async (file) => {
+      try {
+        const filePath = currentPath.value === '/'
+          ? `/${file.name}`
+          : `${currentPath.value}/${file.name}`
+        await apiService.downloadContainerFile(containerId.value, filePath)
+      } catch (error) {
+        console.error('Error downloading file:', error)
+      }
+    }
+
+    // Utility methods
+    const getFileIcon = (file) => {
+      if (file.type === 'directory') return 'bi bi-folder-fill text-warning'
+      if (file.name.endsWith('.txt') || file.name.endsWith('.log')) return 'bi bi-file-text text-info'
+      if (file.name.endsWith('.json') || file.name.endsWith('.xml')) return 'bi bi-file-code text-success'
+      if (file.name.endsWith('.jpg') || file.name.endsWith('.png') || file.name.endsWith('.gif')) return 'bi bi-file-image text-primary'
+      return 'bi bi-file text-secondary'
+    }
+
+    const formatFileSize = (bytes) => {
+      if (bytes === 0 || bytes === undefined) return '-'
+      const k = 1024
+      const sizes = ['Bytes', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    }
+
+    const formatBytes = (bytes) => {
+      if (bytes === 0 || bytes === undefined) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    }
+
+    const formatDate = (date) => {
+      if (!date) return '-'
+      return new Date(date).toLocaleString()
+    }
+
+    const getCpuProgressClass = (percentage) => {
+      if (percentage > 80) return 'bg-danger'
+      if (percentage > 60) return 'bg-warning'
+      return 'bg-success'
+    }
+
+    const getMemoryProgressClass = (percentage) => {
+      if (percentage > 85) return 'bg-danger'
+      if (percentage > 70) return 'bg-warning'
+      return 'bg-info'
+    }
+
+    // Lifecycle
+    onMounted(async () => {
+      await loadContainer()
+      await loadLogs()
+      await loadInspect()
+      await loadFiles()
+      await loadStats()
+
+      // Set up real-time updates
+      statsInterval = setInterval(loadStats, 5000) // Update stats every 5 seconds
+      logsInterval = setInterval(loadLogs, 10000) // Update logs every 10 seconds
+    })
+
+    onUnmounted(() => {
+      if (statsInterval) clearInterval(statsInterval)
+      if (logsInterval) clearInterval(logsInterval)
+    })
+
+    return {
+      containerId,
+      container,
+      containerName,
+      containerStatus,
+      statusBadgeClass,
+      isRunning,
+      loading,
+      logs,
+      inspectData,
+      highlightedInspectData,
+      execCommand,
+      execOutput,
+      currentPath,
+      files,
+      mounts,
+      stats,
+      startContainer,
+      stopContainer,
+      restartContainer,
+      executeCommand,
+      clearLogs,
+      refreshLogs,
+      refreshFiles,
+      navigateUp,
+      navigateToFile,
+      downloadFile,
+      getFileIcon,
+      formatFileSize,
+      formatBytes,
+      formatDate,
+      getCpuProgressClass,
+      getMemoryProgressClass
+    }
+  }
 }
 </script>
 
 <style scoped>
 .logs-container {
-    height: 400px;
-    overflow-y: auto;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    font-family: 'Courier New', monospace;
-    font-size: 0.875rem;
-    white-space: pre-wrap;
-    word-break: break-all;
+  height: 400px;
+  overflow-y: auto;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .inspect-container {
-    height: 500px;
-    overflow-y: auto;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    font-family: 'Courier New', monospace;
-    font-size: 0.875rem;
+  height: 500px;
+  overflow-y: auto;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: 1px solid #444;
+  border-radius: 0.375rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
 }
 
+.inspect-json {
+  white-space: pre-wrap;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+/* JSON syntax highlight styles */
+
 .terminal-output {
-    max-height: 400px;
-    overflow-y: auto;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .cursor-pointer {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .cursor-pointer:hover {
-    background-color: #f8f9fa;
+  background-color: #f8f9fa;
 }
 
 .nav-tabs .nav-link {
-    border: none;
-    color: #6c757d;
+  border: none;
+  color: #6c757d;
 }
 
 .nav-tabs .nav-link.active {
-    background-color: transparent;
-    border-bottom: 2px solid #0d6efd;
-    color: #0d6efd;
+  background-color: transparent;
+  border-bottom: 2px solid #0d6efd;
+  color: #0d6efd;
 }
 
 .card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 .progress {
-    background-color: #e9ecef;
+  background-color: #e9ecef;
 }
 
 .display-6 {
-    font-size: 1.5rem;
-    font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .badge {
-    font-size: 0.75rem;
+  font-size: 0.75rem;
 }
 
 @media (max-width: 768px) {
-    .btn-group {
-        flex-direction: column;
-    }
+  .btn-group {
+    flex-direction: column;
+  }
 
-    .btn-group .btn {
-        margin-bottom: 0.25rem;
-    }
+  .btn-group .btn {
+    margin-bottom: 0.25rem;
+  }
+}
+</style>
+
+<style>
+/* Global JSON syntax highlight styles */
+.json-key {
+  color: #f92672 !important;
+  font-weight: normal;
+}
+
+.json-string {
+  color: #a6e22e !important;
+}
+
+.json-number {
+  color: #ffcc02 !important;
+}
+
+.json-boolean {
+  color: #ff8c00 !important;
+}
+
+.json-null {
+  color: #ae81ff !important;
 }
 </style>

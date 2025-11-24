@@ -6,6 +6,7 @@ import VolumesView from '../views/VolumesView.vue'
 import NetworksView from '../views/NetworksView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import DockerCommandsView from '../views/DockerCommandsView.vue'
+import DockerComposeView from '../views/DockerComposeView.vue'
 import ResourcesView from '../views/ResourcesView.vue'
 import InstallationView from '../views/InstallationView.vue'
 import AboutView from '../views/AboutView.vue'
@@ -46,6 +47,11 @@ const routes: RouteRecordRaw[] = [
         path: '/commands',
         name: 'DockerCommands',
         component: DockerCommandsView
+    },
+    {
+        path: '/compose',
+        name: 'DockerCompose',
+        component: DockerComposeView
     },
     {
         path: '/resources',
