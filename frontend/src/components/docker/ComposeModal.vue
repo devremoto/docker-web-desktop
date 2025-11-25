@@ -8,7 +8,21 @@
     content-class="yaml-content"
     loading-text="Loading docker-compose file..."
     empty-message="No compose file available"
-  />
+  >
+  <template v-slot:footer>
+    <!--copy content-->
+    <button
+      type="button"
+      class="btn btn-primary"
+      :disabled="!selectedFile"
+      @click="copyContentToClipboard()"
+    >
+      Copy
+    </button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+  </template>
+</GenericModal>
+  
 </template>
 
 <script setup>
@@ -22,6 +36,16 @@ const genericModal = ref(null)
 const modalTitle = computed(() => {
     return selectedFile.value ? `Docker Compose: ${selectedFile.value.fileName}` : 'Docker Compose'
 })
+
+function copyContentToClipboard() {
+    if (selectedFile.value && selectedFile.value.content) {
+        navigator.clipboard.writeText(selectedFile.value.content).then(() => {
+        dia
+        }).catch(err => {
+            console.error('Failed to copy text: ', err)
+        })
+    }
+}
 
 // YAML syntax highlighter for docker compose files
 function syntaxHighlightYaml(yamlString) {

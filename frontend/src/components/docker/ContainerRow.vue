@@ -32,7 +32,7 @@
     <td>
       <small>{{ formattedDate }}</small>
     </td>
-    <td>
+    <td class="py-2 text-center">
       <div class="btn-group btn-group-sm" role="group">
         <button 
           v-if="container.State === 'exited'"

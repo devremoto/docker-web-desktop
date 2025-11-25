@@ -23,6 +23,7 @@
         </div>
         <div class="modal-footer" v-if="!hideFooter">
           <slot name="footer">
+        
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
               {{ closeText || 'Close' }}
             </button>
@@ -108,11 +109,24 @@ const setLoading = (isLoading) => {
     loading.value = isLoading
 }
 
+const copyContentToClipboard = () => {
+    if (content.value) {
+        navigator.clipboard.writeText(content.value)
+            .then(() => {
+                console.log('Content copied to clipboard')
+            })
+            .catch(err => {
+                console.error('Failed to copy content: ', err)
+            })
+    }
+}
+
 defineExpose({
     show,
     hide,
     setContent,
-    setLoading
+    setLoading,
+    copyContentToClipboard
 })
 </script>
 

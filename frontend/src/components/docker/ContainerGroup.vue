@@ -1,7 +1,7 @@
 <template>
     <!-- Group Header Row -->
     <tr class="group-header table-secondary cursor-pointer" @click="toggleGroup">
-      <td colspan="6" class="py-2">
+      <td colspan="5" class="py-2">
         <div class="d-flex align-items-center justify-content-between">
           <div class="d-flex align-items-center">
             <button 
@@ -13,46 +13,51 @@
             </button>
             <i class="bi me-2" :class="group.type === 'compose' ? 'bi-stack' : 'bi-diagram-3'"></i>
             <strong>
-              {{ group.type === 'compose' ? 'Docker Compose' : 'Network' }}: {{ group.name }}
+              <!-- {{ group.type === 'compose' ? 'Docker Compose' : 'Network' }}: -->{{ group.name }} 
             </strong>
             <span class="badge bg-info ms-2">{{ group.containers.length }} containers</span>
           </div>
           
           <!-- Group Action Buttons -->
-          <div class="btn-group btn-group-sm" role="group" @click.stop>
+          
+        </div>
+      </td>
+      
+      <td  class="py-2 text-center">
+        <div class="btn-group btn-group-sm " role="group" @click.stop>
             <button 
               v-if="runningCount < group.containers.length"
-              class="btn btn-outline-success"
+              class="btn btn-outline-secondary"
               @click.stop="$emit('startGroup', group)"
               title="Start All Containers in Group"
             >
               <i class="bi bi-play-fill"></i>
-              <span class="d-none d-md-inline ms-1">Start All</span>
+              <span class="d-none d-md-inline ms-1"></span>
             </button>
             <button 
               v-if="runningCount > 0"
-              class="btn btn-outline-warning"
+              class="btn btn-outline-secondary"
               @click.stop="$emit('stopGroup', group)"
               title="Stop All Containers in Group"
             >
               <i class="bi bi-stop-fill"></i>
-              <span class="d-none d-md-inline ms-1">Stop All</span>
+              <span class="d-none d-md-inline ms-1"></span>
             </button>
             <button 
-              class="btn btn-outline-info"
+              class="btn btn-outline-secondary"
               @click.stop="$emit('restartGroup', group)"
               title="Restart All Containers in Group"
             >
               <i class="bi bi-arrow-clockwise"></i>
-              <span class="d-none d-md-inline ms-1">Restart All</span>
+              <span class="d-none d-md-inline ms-1"></span>
             </button>
             <button 
-              class="btn btn-outline-danger"
+              class="btn btn-outline-secondary"
               @click.stop="$emit('removeGroup', group)"
               title="Remove All Containers in Group"
             >
               <i class="bi bi-trash"></i>
-              <span class="d-none d-md-inline ms-1">Remove All</span>
+              <span class="d-none d-md-inline ms-1"></span>
             </button>
             
             <!-- View Docker Compose File Button (only for compose groups) -->
@@ -63,10 +68,9 @@
               title="View Docker Compose File"
             >
               <i class="bi bi-file-earmark-code"></i>
-              <span class="d-none d-lg-inline ms-1">View Compose</span>
+              <span class="d-none d-lg-inline ms-1"></span>
             </button>
           </div>
-        </div>
       </td>
     </tr>
     

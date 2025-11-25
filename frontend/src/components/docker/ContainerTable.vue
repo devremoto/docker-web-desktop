@@ -1,5 +1,11 @@
 <template>
   <div class="card">
+    <div class="card-header bg-success text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-check-circle me-2"></i>
+            Grouped ({{ groupedContainers.groups.length}}) - Ungrouped ({{ groupedContainers.ungrouped.length }})
+          </h5>
+        </div>
     <div class="card-body p-0">
       <div class="table-responsive">
         <table class="table table-hover mb-0 table-fixed">
@@ -10,7 +16,7 @@
               <th style="width: 12%;">Status</th>
               <th style="width: 18%;">Ports</th>
               <th style="width: 12%;">Created</th>
-              <th style="width: 13%;">Actions</th>
+              <th style="width: 13%;" class="text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -186,6 +192,10 @@ const toggleGroup = (groupKey) => {
 .table-fixed td:nth-child(4) {
     white-space: normal;
     overflow: visible;
+}
+
+.table {
+    border-radius: 0.5rem !important;
 }
 
 .table th {
