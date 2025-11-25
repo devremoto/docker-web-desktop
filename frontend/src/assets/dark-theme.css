@@ -531,3 +531,58 @@ main {
 [data-bs-theme="dark"] .popover-body {
     color: var(--bs-body-color);
 }
+
+/* YAML Content Styling - Global */
+.yaml-content {
+    background-color: #212529 !important;
+    color: #adb5bd !important;
+    font-family: 'Courier New', monospace !important;
+    font-size: 0.875rem !important;
+    line-height: 1.4 !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    padding: 1rem !important;
+    border-radius: 0.375rem !important;
+    border: 1px solid #495057 !important;
+    max-height: 400px !important;
+    overflow: auto !important;
+}
+
+/* YAML Syntax Highlighting - Global */
+.yaml-key {
+    color: #58a6ff !important;
+    font-weight: 600 !important;
+}
+
+.yaml-string {
+    color: #a5d6ff !important;
+}
+
+.yaml-number {
+    color: #d2a8ff !important;
+}
+
+.yaml-boolean {
+    color: #ff7b72 !important;
+    font-weight: 500 !important;
+}
+
+.yaml-null {
+    color: #8b949e !important;
+    font-style: italic !important;
+}
+
+.yaml-comment {
+    color: #8b949e !important;
+    font-style: italic !important;
+}
+
+.yaml-array {
+    color: #58a6ff !important;
+    font-weight: bold !important;
+}
+
+.yaml-docker-keyword {
+    color: #d2a8ff !important;
+    font-weight: bold !important;
+}

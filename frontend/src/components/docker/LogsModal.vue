@@ -1,35 +1,18 @@
 <template>
-  <div class="modal fade" :id="modalId" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">
-            <i class="bi bi-file-text me-2"></i>
-            Container Logs: {{ selectedContainer?.name }}
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div v-if="loading" class="text-center py-3">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Loading logs...</p>
-          </div>
-          <div v-else-if="logs" class="logs-container">{{ logs }}</div>
-          <div v-else class="text-center py-3 text-muted">
-            <p>No logs available</p>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
+  <GenericModal
+    :modal-id="modalId"
+    :title="`Container Logs: ${selectedContainer?.name || ''}`"
+    icon="bi-file-text"
+    dialog-class="modal-lg"
+    content-class="code-container"
+    loading-text="Loading logs..."
+    empty-message="No logs available"
+    ref="genericModal"
+  /></template>
 
 <script setup>
 import { ref } from 'vue'
-import { Modal } from 'bootstrap'
+import GenericModal from './GenericModal.vue'
 import apiService from '../../services/api'
 
 const props = defineProps({
@@ -40,8 +23,7 @@ const props = defineProps({
 })
 
 const selectedContainer = ref(null)
-const logs = ref('')
-const loading = ref(false)
+const genericModal = ref(null)
 
 const showLogs = async (container) => {
     selectedContainer.value = {
@@ -49,25 +31,21 @@ const showLogs = async (container) => {
         name: getContainerName(container)
     }
 
-    loading.value = true
-    logs.value = ''
+    genericModal.value.setLoading(true)
+    genericModal.value.setContent('')
 
     try {
         const response = await apiService.getContainerLogs(container.Id, 100)
-        logs.value = response || 'No logs available'
+        const logs = response || 'No logs available'
+        genericModal.value.setContent(logs)
     } catch (error) {
         console.error('Error loading logs:', error)
-        logs.value = `Error loading logs: ${error.message || 'Unknown error'}`
+        genericModal.value.setContent(`Error loading logs: ${error.message || 'Unknown error'}`)
     } finally {
-        loading.value = false
+        genericModal.value.setLoading(false)
     }
 
-    // Show modal using Bootstrap
-    const modalElement = document.getElementById(props.modalId)
-    if (modalElement) {
-        const modal = new Modal(modalElement)
-        modal.show()
-    }
+    genericModal.value.show()
 }
 
 const getContainerName = (container) => {
@@ -77,9 +55,7 @@ const getContainerName = (container) => {
 defineExpose({
     showLogs
 })
-</script>
-
-<style scoped>
+</script><style scoped>
 .logs-container {
     background-color: #212529;
     color: #adb5bd;
