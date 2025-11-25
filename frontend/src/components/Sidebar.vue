@@ -80,17 +80,6 @@
         </router-link>
       </li>
       
-      <li class="nav-item">
-        <router-link 
-          to="/compose" 
-          class="nav-link"
-          :class="{ active: $route.name === 'DockerCompose' }"
-        >
-          <i class="bi bi-files me-2"></i>
-          Docker Compose
-        </router-link>
-      </li>
-      
       <!-- Additional Resources -->
       <li class="nav-item my-2">
         <hr class="nav-separator">
