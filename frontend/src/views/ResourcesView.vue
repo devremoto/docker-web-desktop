@@ -350,53 +350,54 @@ kubectl port-forward pod_name 8080:80
 
 <style scoped>
 .resources-view {
-    padding: 1rem;
+  padding: 1rem;
 }
 
 .card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    transition: box-shadow 0.15s ease-in-out;
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  transition: box-shadow 0.15s ease-in-out;
 }
 
 .card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
 .resource-section {
-    border-left: 3px solid #e9ecef;
-    padding-left: 1rem;
+  border-left: 3px solid #e9ecef;
+  padding-left: 1rem;
 }
 
 .code-block pre {
-    font-size: 0.8rem;
-    line-height: 1.4;
-    max-height: 200px;
-    overflow-y: auto;
+  background-color: var(--bs-secondary-bg) !important;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .text-sm {
-    font-size: 0.875rem;
+  font-size: 0.875rem;
 }
 
 a {
-    color: #0d6efd;
-    transition: color 0.15s ease-in-out;
+  color: #0d6efd;
+  transition: color 0.15s ease-in-out;
 }
 
 a:hover {
-    color: #0a58ca;
+  color: #0a58ca;
 }
 
 .list-unstyled li {
-    padding: 0.25rem 0;
+  padding: 0.25rem 0;
 }
 
 .card-header h5 {
-    font-weight: 600;
+  font-weight: 600;
 }
 
 .card-subtitle {
-    font-style: italic;
+  font-style: italic;
 }
 </style>
