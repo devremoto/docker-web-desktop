@@ -74,72 +74,89 @@ import { computed } from 'vue'
 import ContainerPorts from './ContainerPorts.vue'
 
 const props = defineProps({
-    container: {
-        type: Object,
-        required: true
-    },
-    isGrouped: {
-        type: Boolean,
-        default: false
-    }
+  container: {
+    type: Object,
+    required: true
+  },
+  isGrouped: {
+    type: Boolean,
+    default: false
+  }
 })
 
 defineEmits(['navigate', 'start', 'stop', 'logs', 'remove'])
 
 const containerName = computed(() => {
-    return props.container.Names?.[0]?.replace('/', '') || props.container.Id.slice(0, 12)
+  return props.container.Names?.[0]?.replace('/', '') || props.container.Id.slice(0, 12)
 })
 
 const statusBadgeClass = computed(() => {
-    switch (props.container.State) {
-        case 'running':
-            return 'bg-success'
-        case 'exited':
-            return 'bg-secondary'
-        case 'paused':
-            return 'bg-warning'
-        case 'restarting':
-            return 'bg-info'
-        default:
-            return 'bg-secondary'
-    }
+  switch (props.container.State) {
+    case 'running':
+      return 'bg-success'
+    case 'exited':
+      return 'bg-secondary'
+    case 'paused':
+      return 'bg-warning'
+    case 'restarting':
+      return 'bg-info'
+    default:
+      return 'bg-secondary'
+  }
 })
 
 const statusIcon = computed(() => {
-    switch (props.container.State) {
-        case 'running':
-            return 'bi-play-fill'
-        case 'exited':
-            return 'bi-stop-fill'
-        case 'paused':
-            return 'bi-pause-fill'
-        case 'restarting':
-            return 'bi-arrow-clockwise'
-        default:
-            return 'bi-question-circle'
-    }
+  switch (props.container.State) {
+    case 'running':
+      return 'bi-play-fill'
+    case 'exited':
+      return 'bi-stop-fill'
+    case 'paused':
+      return 'bi-pause-fill'
+    case 'restarting':
+      return 'bi-arrow-clockwise'
+    default:
+      return 'bi-question-circle'
+  }
 })
 
 const formattedDate = computed(() => {
+  // Handle string date format from backend: "2025-12-19 17:03:30 +0000 GMT"
+  if (typeof props.container.Created === 'string') {
+    try {
+      // Remove "+0000 GMT" suffix and parse the date
+      const dateStr = props.container.Created.replace(/\s+\+\d+\s+\w+$/, '')
+      const date = new Date(dateStr)
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleString()
+      }
+    } catch (e) {
+      // Fall through to default behavior
+    }
+  }
+  // Handle numeric timestamp (seconds since epoch)
+  if (typeof props.container.Created === 'number') {
     return new Date(props.container.Created * 1000).toLocaleString()
+  }
+  return 'Invalid Date'
 })
 </script>
 
 <style scoped>
 .cursor-pointer {
-    cursor: pointer;
-    user-select: none;
+  cursor: pointer;
+  user-select: none;
 }
 
 .cursor-pointer:hover {
-    background-color: #f8f9fa;
+  background-color: #f8f9fa;
 }
 
 .group-container {
-    background-color: #fafafa;
+  background-color: #fafafa;
 }
 
 .group-container:hover {
-    background-color: #f0f0f0;
+  background-color: #f0f0f0;
 }
 </style>

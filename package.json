@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "nodemon": "^3.1.11",
+    "swagger-autogen": "^2.23.7"
+  }
+}

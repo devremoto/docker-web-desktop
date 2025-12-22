@@ -279,7 +279,7 @@ const removeVolume = (name) => {
     'bi-trash',
     'Remove',
     'btn-danger',
-    () => dockerStore.removeVolume(name)
+    () => dockerStore.removeVolume(name, true)
   )
 }
 
@@ -295,7 +295,7 @@ const removeAllOrphanedVolumes = () => {
     'btn-danger',
     () => {
       dockerStore.groupedVolumes.orphaned.forEach(volume => {
-        dockerStore.removeVolume(volume.Name)
+        dockerStore.removeVolume(volume.Name, true)
       })
     }
   )

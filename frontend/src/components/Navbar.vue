@@ -17,6 +17,28 @@
 
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
+          <li class="nav-item me-3 d-flex align-items-center">
+            <select 
+              v-model="dockerSource" 
+              @change="updateDockerSource"
+              class="form-select form-select-sm me-2"
+              style="width: auto; min-width: 120px"
+            >
+              <option value="local">Local</option>
+              <option value="wsl2">WSL2</option>
+            </select>
+            <select 
+              v-if="dockerSource === 'wsl2'"
+              v-model="selectedWslDistro"
+              @change="onWslDistroChange"
+              class="form-select form-select-sm"
+              style="width: auto; min-width: 120px"
+            >
+              <option v-for="distro in wslDistros" :key="distro" :value="distro">
+                {{ distro }}
+              </option>
+            </select>
+          </li>
           <li class="nav-item">
             <span class="navbar-text me-3">
               <i class="bi bi-circle-fill text-success me-1"></i>
@@ -51,6 +73,11 @@
                   <i class="bi bi-book me-2"></i>Docker Resources
                 </router-link>
               </li>
+              <li>
+                <router-link class="dropdown-item" to="/settings" @click="closeDropdown">
+                  <i class="bi bi-gear me-2"></i>Settings
+                </router-link>
+              </li>
               <li><hr class="dropdown-divider"></li>
               <li>
                 <button class="dropdown-item" @click="toggleTheme">
@@ -78,11 +105,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
 
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useDockerStore } from '../stores/docker'
+import axios from 'axios'
+
+
+const dockerStore = useDockerStore()
 const dropdownOpen = ref(false)
 const dropdownContainer = ref<HTMLElement | null>(null)
 const currentTheme = ref<'light' | 'dark'>('light')
+const dockerSource = ref<string>('local')
+
+// WSL Distro Dropdown State
+const wslDistros = ref<string[]>([])
+const selectedWslDistro = ref<string>(localStorage.getItem('wslDistro') || '')
+
+const fetchWslDistros = async () => {
+  try {
+    const response = await axios.get('/api/wsl')
+    wslDistros.value = response.data || []
+    if (!selectedWslDistro.value && wslDistros.value.length > 0) {
+      selectedWslDistro.value = wslDistros.value[0]
+      localStorage.setItem('wslDistro', selectedWslDistro.value)
+    }
+  } catch {
+    wslDistros.value = []
+  }
+}
+
+const onWslDistroChange = async () => {
+
+  localStorage.setItem('wslDistro', selectedWslDistro.value)
+  dockerStore.setError(null)
+  await dockerStore.fetchAll()
+}
+
+const updateDockerSource = async () => {
+  dockerStore.setContainerSource(dockerSource.value)
+  localStorage.setItem('dockerSource', dockerSource.value)
+  // Refresh all Docker resources with the new source
+  await dockerStore.fetchAll()
+}
 
 const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value
@@ -107,11 +171,21 @@ const handleClickOutside = (event: Event) => {
   }
 }
 
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   // Initialize current theme from document
   const theme = document.documentElement.getAttribute('data-bs-theme')
   currentTheme.value = theme === 'dark' ? 'dark' : 'light'
+  // Load dockerSource from localStorage
+  const savedSource = localStorage.getItem('dockerSource') || 'local'
+  dockerSource.value = savedSource
+  dockerStore.setContainerSource(savedSource)
+  if (dockerSource.value === 'wsl2') fetchWslDistros()
+})
+
+watch(dockerSource, (val) => {
+  if (val === 'wsl2') fetchWslDistros()
 })
 
 onUnmounted(() => {

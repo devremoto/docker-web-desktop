@@ -54,6 +54,7 @@ interface DockerState {
     networks: Network[]
     loading: boolean
     error: string | null
+    containerSource: string
 }
 
 interface GroupedNetwork extends Network {
@@ -68,7 +69,8 @@ export const useDockerStore = defineStore('docker', {
         volumes: [],
         networks: [],
         loading: false,
-        error: null
+        error: null,
+        containerSource: typeof localStorage !== 'undefined' ? localStorage.getItem('dockerSource') || 'local' : 'local'
     }),
 
     getters: {
@@ -84,36 +86,33 @@ export const useDockerStore = defineStore('docker', {
         // Group images by container usage
         groupedImages: (state): { used: (DockerImage & { containers: Container[] })[], orphaned: (DockerImage & { containers: Container[] })[] } => {
             const groups: { used: (DockerImage & { containers: Container[] })[], orphaned: (DockerImage & { containers: Container[] })[] } = { used: [], orphaned: [] }
-            const usedImageIds = new Set<string>()
 
-            // Collect all image IDs used by containers
-            state.containers.forEach(container => {
-                if (container.ImageID) {
-                    usedImageIds.add(container.ImageID)
-                }
-                if (container.Image) {
-                    // Also check by image name/tag
-                    const matchingImages = state.images.filter(img =>
-                        img.RepoTags && img.RepoTags.some(tag => tag === container.Image)
-                    )
-                    matchingImages.forEach(img => usedImageIds.add(img.Id))
-                }
-            })
-
-            // Group images
+            // Group images based on the containers array from backend
             state.images.forEach(image => {
-                const imageData = {
-                    ...image,
-                    containers: state.containers.filter(container =>
+                // If image has containers array from backend, use that
+                if (image.containers !== undefined) {
+                    if (image.containers.length > 0) {
+                        groups.used.push(image as DockerImage & { containers: Container[] })
+                    } else {
+                        groups.orphaned.push(image as DockerImage & { containers: Container[] })
+                    }
+                } else {
+                    // Fallback to old logic if containers array not provided
+                    const imageContainers = state.containers.filter(container =>
                         container.ImageID === image.Id ||
                         (container.Image && image.RepoTags && image.RepoTags.some(tag => tag === container.Image))
                     )
-                }
 
-                if (usedImageIds.has(image.Id)) {
-                    groups.used.push(imageData)
-                } else {
-                    groups.orphaned.push(imageData)
+                    const imageData = {
+                        ...image,
+                        containers: imageContainers
+                    }
+
+                    if (imageContainers.length > 0) {
+                        groups.used.push(imageData)
+                    } else {
+                        groups.orphaned.push(imageData)
+                    }
                 }
             })
 
@@ -218,11 +217,16 @@ export const useDockerStore = defineStore('docker', {
             this.error = error
         },
 
+        setContainerSource(source: string): void {
+            this.containerSource = source
+        },
+
         // Container actions
-        async fetchContainers(): Promise<void> {
+        async fetchContainers(source?: string): Promise<void> {
             try {
                 this.setLoading(true)
-                this.containers = await apiService.getContainers() as Container[]
+                const sourceToUse = source || this.containerSource
+                this.containers = await apiService.getContainers(true, sourceToUse) as Container[]
                 this.setError(null)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')
@@ -233,8 +237,8 @@ export const useDockerStore = defineStore('docker', {
 
         async startContainer(id: string): Promise<void> {
             try {
-                await apiService.startContainer(id)
-                await this.fetchContainers()
+                await apiService.startContainer(id, this.containerSource)
+                await this.fetchContainers(this.containerSource)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
@@ -242,8 +246,8 @@ export const useDockerStore = defineStore('docker', {
 
         async stopContainer(id: string): Promise<void> {
             try {
-                await apiService.stopContainer(id)
-                await this.fetchContainers()
+                await apiService.stopContainer(id, this.containerSource)
+                await this.fetchContainers(this.containerSource)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
@@ -251,18 +255,19 @@ export const useDockerStore = defineStore('docker', {
 
         async removeContainer(id: string, force: boolean = false): Promise<void> {
             try {
-                await apiService.removeContainer(id, force)
-                await this.fetchContainers()
+                await apiService.removeContainer(id, force, this.containerSource)
+                await this.fetchContainers(this.containerSource)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
         },
 
         // Image actions
-        async fetchImages(): Promise<void> {
+        async fetchImages(source?: string): Promise<void> {
             try {
                 this.setLoading(true)
-                this.images = await apiService.getImages() as DockerImage[]
+                const sourceToUse = source || this.containerSource
+                this.images = await apiService.getImages(sourceToUse) as DockerImage[]
                 this.setError(null)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')
@@ -273,18 +278,19 @@ export const useDockerStore = defineStore('docker', {
 
         async removeImage(id: string, force: boolean = false): Promise<void> {
             try {
-                await apiService.removeImage(id, force)
-                await this.fetchImages()
+                await apiService.removeImage(id, force, this.containerSource)
+                await this.fetchImages(this.containerSource)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
         },
 
         // Volume actions
-        async fetchVolumes(): Promise<void> {
+        async fetchVolumes(source?: string): Promise<void> {
             try {
                 this.setLoading(true)
-                const volumesResponse: any = await apiService.getVolumes()
+                const sourceToUse = source || this.containerSource
+                const volumesResponse: any = await apiService.getVolumes(sourceToUse)
 
                 this.volumes = volumesResponse
 
@@ -296,20 +302,21 @@ export const useDockerStore = defineStore('docker', {
             }
         },
 
-        async removeVolume(name: string): Promise<void> {
+        async removeVolume(name: string, force: boolean = false): Promise<void> {
             try {
-                await apiService.removeVolume(name)
-                await this.fetchVolumes()
+                await apiService.removeVolume(name, force, this.containerSource)
+                await this.fetchVolumes(this.containerSource)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')
             }
         },
 
         // Network actions
-        async fetchNetworks(): Promise<void> {
+        async fetchNetworks(source?: string): Promise<void> {
             try {
                 this.setLoading(true)
-                this.networks = await apiService.getNetworks() as Network[]
+                const sourceToUse = source || this.containerSource
+                this.networks = await apiService.getNetworks(sourceToUse) as Network[]
                 this.setError(null)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')
@@ -318,10 +325,10 @@ export const useDockerStore = defineStore('docker', {
             }
         },
 
-        async removeNetwork(id: string): Promise<void> {
+        async removeNetwork(id: string, force: boolean = false): Promise<void> {
             try {
-                await apiService.removeNetwork(id)
-                await this.fetchNetworks()
+                await apiService.removeNetwork(id, force, this.containerSource)
+                await this.fetchNetworks(this.containerSource)
             } catch (error) {
                 this.setError(error instanceof Error ? error.message : 'An error occurred')
             }

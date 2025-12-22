@@ -2,14 +2,24 @@
   <div class="images">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2><i class="bi bi-layers me-2"></i>Images</h2>
-      <button 
-        class="btn btn-outline-primary" 
-        @click="refreshImages"
-        :disabled="dockerStore.loading"
-      >
-        <i class="bi bi-arrow-clockwise me-1"></i>
-        Refresh
-      </button>
+      <div class="d-flex gap-2">
+        <button 
+          class="btn btn-outline-success" 
+          @click="openPullModal"
+          title="Pull a new image from Docker Hub"
+        >
+          <i class="bi bi-cloud-download me-1"></i>
+          Pull Image
+        </button>
+        <button 
+          class="btn btn-outline-primary" 
+          @click="refreshImages"
+          :disabled="dockerStore.loading"
+        >
+          <i class="bi bi-arrow-clockwise me-1"></i>
+          Refresh
+        </button>
+      </div>
     </div>
 
     <!-- Error Alert -->
@@ -83,9 +93,9 @@
                         v-for="container in image.containers" 
                         :key="container.Id"
                         class="badge bg-primary"
-                        :title="container.Names[0]"
+                        :title="container.Names?.[0] || 'Unknown'"
                       >
-                        {{ container.Names[0].replace('/', '') }}
+                        {{ (container.Names?.[0] || 'Unknown').replace('/', '') }}
                       </span>
                     </div>
                   </td>
@@ -104,6 +114,13 @@
                         :disabled="image.containers.length > 0"
                       >
                         <i class="bi bi-trash"></i>
+                      </button>
+                      <button
+                        class="btn btn-outline-success"
+                        @click="openRunContainerModal(image)"
+                        title="Run container from this image"
+                      >
+                        <i class="bi bi-play-fill"></i>
                       </button>
                     </div>
                   </td>
@@ -186,6 +203,13 @@
                       >
                         <i class="bi bi-trash"></i>
                       </button>
+                      <button
+                        class="btn btn-outline-success"
+                        @click="openRunContainerModal(image)"
+                        title="Run container from this image"
+                      >
+                        <i class="bi bi-play-fill"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -236,15 +260,43 @@
         </div>
       </div>
     </div>
+
+    <!-- Docker Pull Modal -->
+    <DockerExecutionModal
+      :command-to-execute="commandToExecute"
+      :display-command="displayCommand"
+      :is-executing="isExecuting"
+      :execution-result="executionResult"
+      :can-execute-command="canExecuteCommand"
+      :persistent-selections="persistentSelections"
+      :loading-states="loadingStates"
+      :available-options="availableOptions"
+      @execute-open-current-command="performOpenCommand"
+      @execute-current-command="executeCurrentCommand"
+      @update:persistent-selections="persistentSelections = $event"
+      @load-dropdown-data="loadDropdownData"
+      @reset-execution="resetExecution"
+    />
+
+    <!-- Run Container Modal -->
+    <RunContainerModal
+      ref="runContainerModal"
+      @run="executeRunCommand"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { useDockerStore } from '../stores/docker'
 import { Modal } from 'bootstrap'
+import DockerExecutionModal from '@/components/docker/DockerExecutionModal.vue'
+import RunContainerModal from '@/components/docker/RunContainerModal.vue'
+import serviceApi from '@/services/api'
 
 const dockerStore = useDockerStore()
+const router = useRouter()
 const confirmationData = ref({
   title: '',
   message: '',
@@ -255,8 +307,122 @@ const confirmationData = ref({
   action: null
 })
 
+// Docker pull modal state
+const commandToExecute = ref('')
+const persistentSelections = ref({
+  container: '',
+  image: '',
+  tag: '',
+  volume: '',
+  network: '',
+  service: ''
+})
+const isExecuting = ref(false)
+const executionResult = ref(null)
+const loadingStates = ref({
+  containers: false,
+  images: false,
+  tags: false,
+  volumes: false,
+  networks: false,
+  services: false
+})
+const availableOptions = ref({
+  containers: [],
+  images: [],
+  tags: [],
+  volumes: [],
+  networks: [],
+  services: []
+})
+
+const displayCommand = computed(() => {
+  // Use HTML-escaped placeholders because the modal renders with v-html
+  const esc = (s) => s.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+
+  if (persistentSelections.value.image && persistentSelections.value.image.trim() !== '') {
+    let cmd = `docker pull ${persistentSelections.value.image}`
+    if (persistentSelections.value.tag && persistentSelections.value.tag.trim() !== '') {
+      cmd += `:${persistentSelections.value.tag}`
+    } else {
+      cmd += `:${esc('<tag>')}`
+    }
+    return cmd
+  }
+  return `docker pull ${esc('<image>')}:${esc('<tag>')}`
+})
+
+const canExecuteCommand = computed(() => {
+  // Only require image, tag is optional
+  return persistentSelections.value.image !== ''
+})
+
 const refreshImages = () => {
   dockerStore.fetchImages()
+}
+const runContainerModal = ref(null)
+const openRunContainerModal = (image) => {
+  const repo = getRepository(image)
+  const tag = getTag(image)
+  runContainerModal.value?.showForImage(repo, tag)
+}
+
+const executeRunCommand = async (command) => {
+  // Execute docker run command coming from modal
+  isExecuting.value = true
+  executionResult.value = null
+  try {
+    const response = await serviceApi.executeCommand(
+      { command },
+      dockerStore.containerSource
+    )
+    executionResult.value = response
+
+    // If successful, show feedback, reset form, and close modal
+    if (response && response.success !== false) {
+      runContainerModal.value?.showSuccess('Container started successfully!')
+      runContainerModal.value?.resetForm?.()
+
+      // Close modal after showing success message
+      setTimeout(() => {
+        runContainerModal.value?.hide?.()
+      }, 2000)
+    }
+
+    // Refresh containers list after running
+    setTimeout(() => {
+      dockerStore.fetchContainers?.()
+    }, 1000)
+  } catch (error) {
+    console.error('Run command failed:', error)
+    executionResult.value = {
+      success: false,
+      error: error.message,
+      output: null
+    }
+  } finally {
+    isExecuting.value = false
+  }
+}
+
+const openPullModal = async () => {
+  commandToExecute.value = 'docker pull <image>:<tag>'
+  persistentSelections.value = {
+    container: '',
+    image: '',
+    tag: '',
+    volume: '',
+    network: '',
+    service: ''
+  }
+
+  await nextTick()
+
+  const modalElement = document.getElementById('executionModal')
+  if (modalElement) {
+    const modal = new Modal(modalElement)
+    modal.show()
+  }
 }
 
 const showConfirmation = (title, message, icon, type, buttonText, buttonClass, action) => {
@@ -298,7 +464,24 @@ const getTag = (image) => {
 }
 
 const formatDate = (timestamp) => {
-  return new Date(timestamp * 1000).toLocaleString()
+  // Handle string date format from backend: "2025-12-19 17:03:30 +0000 GMT"
+  if (typeof timestamp === 'string') {
+    try {
+      // Remove "+0000 GMT" suffix and parse the date
+      const dateStr = timestamp.replace(/\s+\+\d+\s+\w+$/, '');
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleString();
+      }
+    } catch (e) {
+      // Fall through to default behavior
+    }
+  }
+  // Handle numeric timestamp (seconds since epoch)
+  if (typeof timestamp === 'number') {
+    return new Date(timestamp * 1000).toLocaleString();
+  }
+  return 'Invalid Date';
 }
 
 const formatSize = (bytes) => {
@@ -342,6 +525,117 @@ const removeAllOrphanedImages = () => {
       })
     }
   )
+}
+
+const loadDropdownData = async (dataType) => {
+  // Handle loading dropdown data for images and tags
+  if (dataType === 'images') {
+    loadingStates.value.images = true
+    try {
+      const response = await serviceApi.searchImage('')
+      availableOptions.value.images = response.results || []
+    } catch (error) {
+      console.error('Failed to load images:', error)
+    } finally {
+      loadingStates.value.images = false
+    }
+  }
+}
+
+const performOpenCommand = async () => {
+  isExecuting.value = true
+  executionResult.value = null
+  try {
+   
+        let processedCommand = `docker pull ${persistentSelections.value.image}`;
+    if (persistentSelections.value.tag && persistentSelections.value.tag.trim() !== '') {
+      processedCommand += `:${persistentSelections.value.tag}`
+    }
+    await serviceApi.openCommand(
+      { command: processedCommand },
+      dockerStore.containerSource
+    )
+  } catch (error) {
+    console.error('Command execution failed:', error)
+    executionResult.value = {
+      success: false,
+      error: error.message,
+      output: null
+    }
+  } finally {
+    isExecuting.value = false
+  }
+}
+
+const executeCurrentCommand = async () => {
+  // Execute docker pull command
+  isExecuting.value = true
+  executionResult.value = null
+
+  try {
+    let command = `docker pull ${persistentSelections.value.image}`;
+    if (persistentSelections.value.tag && persistentSelections.value.tag.trim() !== '') {
+      command += `:${persistentSelections.value.tag}`
+    }
+
+    const response = await serviceApi.executeCommand(
+      { command },
+      dockerStore.containerSource
+    )
+    executionResult.value = response
+
+    // If run container executed successfully, show feedback and reset form
+    if (response && response.success && runContainerModal.value?.showSuccess) {
+      runContainerModal.value.showSuccess('Container started successfully')
+      runContainerModal.value.resetForm?.()
+    }
+
+    // Refresh images after pull
+    setTimeout(() => {
+      dockerStore.fetchImages()
+    }, 1000)
+  } catch (error) {
+    console.error('Command execution failed:', error)
+    executionResult.value = {
+      success: false,
+      error: error.message,
+      output: null
+    }
+  } finally {
+    isExecuting.value = false
+  }
+}
+
+const resetExecution = () => {
+  // Clear selections and results, restore default command
+  persistentSelections.value = {
+    container: '',
+    image: '',
+    tag: '',
+    volume: '',
+    network: '',
+    service: ''
+  }
+  executionResult.value = null
+  isExecuting.value = false
+  commandToExecute.value = 'docker pull <image>:<tag>'
+  // Clear available options & loading states
+  availableOptions.value = {
+    containers: [],
+    images: [],
+    tags: [],
+    volumes: [],
+    networks: [],
+    services: []
+  }
+  loadingStates.value = {
+    containers: false,
+    images: false,
+    tags: false,
+    volumes: false,
+    networks: false,
+    services: false
+  }
 }
 
 // Initialize images on component mount

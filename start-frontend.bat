@@ -1,3 +1,5 @@
 @echo off
-cd /d "d:\desenvolvimento\docker\clone\frontend"
-npm run dev
+
+echo Starting Frontend Development Server...
+start "Frontend Server" cmd /c "cd frontend && npm install && npm run dev"
+

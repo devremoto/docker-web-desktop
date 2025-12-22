@@ -90,6 +90,14 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
             <i class="bi bi-x me-2"></i>Close
           </button>
+          <button 
+            type="button" 
+            class="btn btn-outline-warning"
+            @click="$emit('resetExecution')"
+            title="Reset selections and result"
+          >
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+          </button>
           <!--v-if="!isExecuting && !executionResult"-->
           <button             
             type="button" 
@@ -107,6 +115,7 @@
 
 <script setup>
 import DockerParameterSelection from './DockerParameterSelection.vue'
+import { onMounted } from 'vue'
 
 const props = defineProps({
   commandToExecute: {
@@ -145,7 +154,16 @@ const props = defineProps({
 
 const isDocker = import.meta.env.MODE === 'docker'
 
-defineEmits(['executeCurrentCommand', 'update:persistentSelections', 'loadDropdownData', 'executeOpenCurrentCommand'])
+const emit = defineEmits(['executeCurrentCommand', 'update:persistentSelections', 'loadDropdownData', 'executeOpenCurrentCommand', 'resetExecution'])
+
+onMounted(() => {
+  const modalEl = document.getElementById('executionModal')
+  if (modalEl) {
+    modalEl.addEventListener('hidden.bs.modal', () => {
+      emit('resetExecution')
+    })
+  }
+})
 
 const copyCommand = async () => {
   try {

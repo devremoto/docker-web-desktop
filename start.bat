@@ -19,4 +19,5 @@ echo Backend: http://localhost:3000
 echo Frontend: Will be available shortly at the URL shown in the frontend terminal
 echo.
 echo Press any key to exit...
-pause > nul
+ 
+rem pause > nul

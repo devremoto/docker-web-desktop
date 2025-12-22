@@ -1,5 +1,5 @@
+const swaggerAutogen = require('swagger-autogen')();
 
-import swaggerAutogen from 'swagger-autogen';
 const doc = {
     info: {
         title: 'Docker Web Desktop API',

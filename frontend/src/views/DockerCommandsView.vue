@@ -67,6 +67,10 @@ import DockerNoResults from '@/components/docker/DockerNoResults.vue'
 import DockerConfirmationModal from '@/components/docker/DockerConfirmationModal.vue'
 import DockerExecutionModal from '@/components/docker/DockerExecutionModal.vue'
 import serviceApi from '@/services/api'
+import { useDockerStore } from '@/stores/docker'
+
+// Get docker store to access containerSource (Local/WSL2)
+const dockerStore = useDockerStore()
 
 // Reactive variables
 const searchQuery = ref('')
@@ -77,6 +81,7 @@ const commandToExecute = ref('')
 const persistentSelections = ref({
     container: '',
     image: '',
+    tag: '',
     volume: '',
     network: '',
     service: ''
@@ -86,6 +91,7 @@ const persistentSelections = ref({
 const loadingStates = ref({
     containers: false,
     images: false,
+    tags: false,
     volumes: false,
     networks: false,
     services: false
@@ -122,6 +128,7 @@ const containerCommands = ref([
 const imageCommands = ref([
     { command: 'docker images', description: 'List all images', risk: 'safe' },
     { command: 'docker pull <image>', description: 'Download an image', risk: 'safe' },
+    { command: 'docker pull <image>:<tag>', description: 'Download an image with specific tag', risk: 'safe' },
     { command: 'docker rmi <image>', description: 'Remove an image', risk: 'destructive' },
     { command: 'docker build -t <tag> .', description: 'Build an image from Dockerfile', risk: 'safe' },
     { command: 'docker tag <image> <tag>', description: 'Tag an image', risk: 'safe' },
@@ -286,6 +293,12 @@ const displayCommand = computed(() => {
     if (persistentSelections.value.image) {
         displayCmd = displayCmd.replace(/<image>/g, `<strong>${persistentSelections.value.image}</strong>`)
     }
+    if (persistentSelections.value.tag) {
+        debugger;
+        displayCmd = displayCmd.replace(/:<tag>/g, `:<strong>${persistentSelections.value.tag}</strong>`)
+        displayCmd = displayCmd.replace(/<tag>/g, `<strong>${persistentSelections.value.tag}</strong>`)
+
+    }
     if (persistentSelections.value.volume) {
         displayCmd = displayCmd.replace(/<volume>/g, `<strong>${persistentSelections.value.volume}</strong>`)
     }
@@ -411,19 +424,14 @@ const executeDirectly = async (command) => {
     executionResult.value = null
 
     try {
-        const response = await fetch('http://localhost:3000/api/commands/execute', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ command: command })
-        })
-
-        const result = await response.json()
-        executionResult.value = result
+        const response = await serviceApi.executeCommand(
+            { command: command },
+            dockerStore.containerSource
+        )
+        executionResult.value = response
 
         // Show execution modal with results
-        await showExecutionModal(result)
+        await showExecutionModal(response)
     } catch (error) {
         console.error('Command execution failed:', error)
         executionResult.value = {
@@ -536,7 +544,7 @@ const executeCurrentCommand = async () => {
 const loadContainersForDropdown = async () => {
     loadingStates.value.containers = true
     try {
-        availableOptions.value.containers = await serviceApi.getContainers()
+        availableOptions.value.containers = await serviceApi.getContainers(true, dockerStore.containerSource)
     } catch (error) {
         console.error('Failed to load containers:', error)
         availableOptions.value.containers = []
@@ -548,7 +556,7 @@ const loadContainersForDropdown = async () => {
 const loadImagesForDropdown = async () => {
     loadingStates.value.images = true
     try {
-        availableOptions.value.images = await serviceApi.getImages()
+        availableOptions.value.images = await serviceApi.getImages(dockerStore.containerSource)
     } catch (error) {
         console.error('Failed to load images:', error)
         availableOptions.value.images = []
@@ -560,7 +568,8 @@ const loadImagesForDropdown = async () => {
 const loadVolumesForDropdown = async () => {
     loadingStates.value.volumes = true
     try {
-        availableOptions.value.volumes = await serviceApi.getVolumes()
+        const volResp = await serviceApi.getVolumes(dockerStore.containerSource)
+        availableOptions.value.volumes = volResp.Volumes || volResp
     } catch (error) {
         console.error('Failed to load volumes:', error)
         availableOptions.value.volumes = []
@@ -572,7 +581,7 @@ const loadVolumesForDropdown = async () => {
 const loadNetworksForDropdown = async () => {
     loadingStates.value.networks = true
     try {
-        availableOptions.value.networks = await serviceApi.getNetworks()
+        availableOptions.value.networks = await serviceApi.getNetworks(dockerStore.containerSource)
     } catch (error) {
         console.error('Failed to load networks:', error)
         availableOptions.value.networks = []
@@ -584,7 +593,7 @@ const loadNetworksForDropdown = async () => {
 const loadServicesForDropdown = async () => {
     loadingStates.value.services = true
     try {
-        const services = await serviceApi.getServices()
+        const services = await serviceApi.getServices(dockerStore.containerSource)
         availableOptions.value.services = services
     } catch (error) {
         console.error('Failed to load services:', error)
@@ -617,7 +626,6 @@ const loadDropdownData = (type) => {
 const processPlaceholders = async (command) => {
     let processedCommand = command
 
-    // Replace placeholders with selected values (they should already be selected from dropdowns)
     if (processedCommand.includes('<container>')) {
         if (!persistentSelections.value.container) {
             throw new Error('Container selection is required')
@@ -630,6 +638,13 @@ const processPlaceholders = async (command) => {
             throw new Error('Image selection is required')
         }
         processedCommand = processedCommand.replace(/<image>/g, persistentSelections.value.image)
+    }
+
+    if (processedCommand.includes('<tag>') || processedCommand.includes(':<tag>')) {
+        debugger;
+        processedCommand = processedCommand.replace(/:<tag>/g, ':' + persistentSelections.value.tag)
+        processedCommand = processedCommand.replace(/<tag>/g, persistentSelections.value.tag)
+
     }
 
     if (processedCommand.includes('<volume>')) {
@@ -661,7 +676,10 @@ const performOpenCommand = async () => {
     executionResult.value = null
     try {
         const processedCommand = await processPlaceholders(commandToExecute.value)
-        await serviceApi.openCommand(processedCommand)
+        await serviceApi.openCommand(
+            { command: processedCommand },
+            dockerStore.containerSource
+        )
     } catch (error) {
         console.error('Command execution failed:', error)
         executionResult.value = {
@@ -679,7 +697,10 @@ const performExecution = async (processedCommand) => {
     executionResult.value = null
 
     try {
-        const result = await serviceApi.executeCommand(processedCommand)
+        const result = await serviceApi.executeCommand(
+            { command: processedCommand },
+            dockerStore.containerSource
+        )
         executionResult.value = result
     } catch (error) {
         console.error('Command execution failed:', error)
@@ -702,7 +723,23 @@ const copyCommand = async (command) => {
 }
 
 onMounted(() => {
-    // Component mounted
+    // Reset form when modal is closed
+    const executionModal = document.getElementById('executionModal')
+    if (executionModal) {
+        executionModal.addEventListener('hide.bs.modal', () => {
+            // Reset all selections
+            persistentSelections.value = {
+                container: '',
+                image: '',
+                tag: '',
+                volume: '',
+                network: '',
+                service: ''
+            }
+            // Reset execution result
+            executionResult.value = null
+        })
+    }
 })
 </script>
 

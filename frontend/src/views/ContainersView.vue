@@ -299,7 +299,8 @@ const removeContainer = (id, force) => {
     'Remove',
     'btn-danger',
     () => {
-      dockerStore.removeContainer(id, force)
+      // Use force=true to remove running containers without stopping them first
+      dockerStore.removeContainer(id, true)
     }
   )
 }

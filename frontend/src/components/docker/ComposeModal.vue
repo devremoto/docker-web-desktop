@@ -29,9 +29,11 @@
 import { ref, computed } from 'vue'
 import GenericModal from './GenericModal.vue'
 import apiService from '../../services/api'
+import { useDockerStore } from '../../stores/docker'
 
 const selectedFile = ref(null)
 const genericModal = ref(null)
+const dockerStore = useDockerStore()
 
 const modalTitle = computed(() => {
     return selectedFile.value ? `Docker Compose: ${selectedFile.value.fileName}` : 'Docker Compose'
@@ -40,7 +42,7 @@ const modalTitle = computed(() => {
 function copyContentToClipboard() {
     if (selectedFile.value && selectedFile.value.content) {
         navigator.clipboard.writeText(selectedFile.value.content).then(() => {
-        dia
+            // copied successfully
         }).catch(err => {
             console.error('Failed to copy text: ', err)
         })
@@ -54,7 +56,7 @@ function syntaxHighlightYaml(yamlString) {
     let result = yamlString
 
     // Step 1: Highlight comments
-    result = result.replace(/^(\s*)(#.*)$/gm, '$1<span class="yaml-comment">$2</span>')
+    result = result.replace(/(#.*)$/gm, '<span class="yaml-comment">$1</span>')
 
     // Step 2: Highlight keys (text followed by colon)
     result = result.replace(/^(\s*)([a-zA-Z_][a-zA-Z0-9_-]*)(\s*):/gm, '$1<span class="yaml-key">$2</span>$3:')
@@ -102,8 +104,8 @@ const viewComposeFile = async (group) => {
         genericModal.value.setContent('')
         genericModal.value.show()
 
-        // Call backend to get compose file content
-        const response = await apiService.getComposeFile(projectName, workingDir, configFiles)
+        // Call backend to get compose file content using selected source
+        const response = await apiService.getComposeFile(projectName, workingDir, configFiles, dockerStore.containerSource)
 
         if (response.content) {
             selectedFile.value = {

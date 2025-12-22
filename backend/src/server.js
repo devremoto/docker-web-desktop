@@ -11,6 +11,7 @@ const networkRoutes = require('./routes/networks');
 const serviceRoutes = require('./routes/services');
 const commandRoutes = require('./routes/commands');
 const composeRoutes = require('./routes/compose');
+const wslRoutes = require('./routes/wsl');
 
 const app = express();
 const server = http.createServer(app);
@@ -40,12 +41,18 @@ app.use(express.json());
 if (process.env.NODE_ENV === 'development') {
     try {
         const swaggerUi = require('swagger-ui-express');
-        const swaggerSpec = require('./swagger');
-
-        app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-        console.log('Swagger UI available at /api-docs (development)');
+        const swaggerDocument = require('./swagger_output.json');
+        app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+            explorer: true,
+            swaggerOptions: {
+                docExpansion: 'none', // Collapse all by default
+                tagsSorter: 'alpha', // Sort tags alphabetically
+                operationsSorter: 'alpha',
+            }
+        }));
+        console.log('Swagger UI available at /api-docs (development, swagger-autogen)');
     } catch (err) {
-        console.warn('Swagger UI not available. Install swagger-ui-express and swagger-jsdoc to enable it.');
+        console.warn('Swagger UI not available. Install swagger-ui-express and swagger-autogen to enable it.');
     }
 }
 
@@ -57,6 +64,7 @@ app.use('/api/networks', networkRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/commands', commandRoutes);
 app.use('/api/compose', composeRoutes);
+app.use('/api/wsl', wslRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -76,7 +84,12 @@ io.on('connection', (socket) => {
 app.set('io', io);
 
 server.listen(PORT, () => {
+    console.log('Environment:', process.env.NODE_ENV || 'development');
     console.log(`Server is running on port ${PORT}`);
+    //put the app link and swagger link here
+    console.log(`API Endpoint: http://localhost:${PORT}/api`);
+    console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
+    console.log('server is running at: http://localhost:' + PORT);
 });
 
 module.exports = { app, io };

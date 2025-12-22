@@ -56,70 +56,94 @@ class ApiService {
 
     }
 
-    async executeCommand(processedCommand: ProcessedCommand): Promise<any> {
+    async executeCommand(processedCommand: ProcessedCommand, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
         const response = await this.api.post('/commands/execute', {
-            command: processedCommand
+            command: processedCommand.command || processedCommand,
+            source: source,
+            wslDistro
         })
         return response.data
     }
 
-    async openCommand(processedCommand: ProcessedCommand): Promise<any> {
+    async openCommand(processedCommand: ProcessedCommand, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
         const response = await this.api.post('/commands/openconsole', {
-            command: processedCommand
+            command: processedCommand.command || processedCommand,
+            source: source,
+            wslDistro
         })
         return response.data
     }
 
     // Container methods
-    async getContainers(all: boolean = true): Promise<ContainerInfo[]> {
-        const response = await this.api.get(`/containers?all=${all}`)
+    async getContainers(all: boolean = true, source: string = 'local'): Promise<ContainerInfo[]> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/containers?all=${all}&source=${source}${distroParam}`)
         return response.data
     }
 
-    async getContainer(id: string): Promise<ContainerInfo> {
-        const response = await this.api.get(`/containers/${id}`)
+    async getContainer(id: string, source: string = 'local'): Promise<ContainerInfo> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/containers/${id}?source=${source}${distroParam}`)
         return response.data
     }
 
-    async startContainer(id: string): Promise<any> {
-        const response = await this.api.post(`/containers/${id}/start`)
+    async startContainer(id: string, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const response = await this.api.post(`/containers/${id}/start?source=${source}`, { wslDistro })
         return response.data
     }
 
-    async stopContainer(id: string): Promise<any> {
-        const response = await this.api.post(`/containers/${id}/stop`)
+    async stopContainer(id: string, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const response = await this.api.post(`/containers/${id}/stop?source=${source}`, { wslDistro })
         return response.data
     }
 
-    async removeContainer(id: string, force: boolean = false): Promise<any> {
-        const response = await this.api.delete(`/containers/${id}?force=${force}`)
+    async removeContainer(id: string, force: boolean = false, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.delete(`/containers/${id}?force=${force}&source=${source}${distroParam}`)
         return response.data
     }
 
-    async getContainerLogs(id: string, tail: number = 100): Promise<string> {
-        const response = await this.api.get(`/containers/${id}/logs?tail=${tail}`)
+    async getContainerLogs(id: string, tail: number = 100, source: string = 'local'): Promise<string> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/containers/${id}/logs?tail=${tail}&source=${source}${distroParam}`)
         return response.data
     }
 
-    async inspectContainer(id: string): Promise<any> {
-        const response = await this.api.get(`/containers/${id}/inspect`)
+    async inspectContainer(id: string, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/containers/${id}/inspect?source=${source}${distroParam}`)
         return response.data
     }
 
-    async getContainerStats(id: string): Promise<any> {
-        const response = await this.api.get(`/containers/${id}/stats`)
+    async getContainerStats(id: string, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/containers/${id}/stats?source=${source}${distroParam}`)
         return response.data
     }
 
-    async getContainerFiles(id: string, path: string = '/'): Promise<any> {
-        const response = await this.api.get(`/containers/${id}/files`, {
+    async getContainerFiles(id: string, path: string = '/', source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/containers/${id}/files?source=${source}${distroParam}`, {
             params: { path }
         })
         return response.data
     }
 
-    async downloadContainerFile(id: string, filePath: string): Promise<Blob> {
-        const response = await this.api.get(`/containers/${id}/files/download`, {
+    async downloadContainerFile(id: string, filePath: string, source: string = 'local'): Promise<Blob> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/containers/${id}/files/download?source=${source}${distroParam}`, {
             params: { path: filePath },
             responseType: 'blob'
         })
@@ -137,48 +161,63 @@ class ApiService {
         return response.data
     }
 
-    async execContainer(id: string, command: string): Promise<any> {
-        const response = await this.api.post(`/containers/${id}/exec`, {
-            command
+    async execContainer(id: string, command: string, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const response = await this.api.post(`/containers/${id}/exec?source=${source}`, {
+            command,
+            wslDistro
         })
         return response.data
     }
 
-    async restartContainer(id: string): Promise<any> {
-        const response = await this.api.post(`/containers/${id}/restart`)
+    async restartContainer(id: string, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const response = await this.api.post(`/containers/${id}/restart?source=${source}`, { wslDistro })
         return response.data
     }
 
     // Image methods
-    async getImages(): Promise<ImageInfo[]> {
-        const response = await this.api.get('/images')
+    async getImages(source: string = 'local'): Promise<ImageInfo[]> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/images?source=${source}${distroParam}`)
         return response.data
     }
 
-    async removeImage(id: string, force: boolean = false): Promise<any> {
-        const response = await this.api.delete(`/images/${id}?force=${force}`)
+    async removeImage(id: string, force: boolean = false, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.delete(`/images/${id}?force=${force}&source=${source}${distroParam}`)
         return response.data
     }
 
     // Volume methods
-    async getVolumes(): Promise<{ Volumes: VolumeInfo[] }> {
-        const response = await this.api.get('/volumes')
+    async getVolumes(source: string = 'local'): Promise<{ Volumes: VolumeInfo[] }> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/volumes?source=${source}${distroParam}`)
         return response.data
     }
 
-    async removeVolume(name: string): Promise<any> {
-        const response = await this.api.delete(`/volumes/${name}`)
+    async removeVolume(name: string, force: boolean = false, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.delete(`/volumes/${name}?force=${force}&source=${source}${distroParam}`)
         return response.data
     }
 
     // Network methods
-    async getNetworks(): Promise<NetworkInfo[]> {
-        const response = await this.api.get('/networks')
+    async getNetworks(source: string = 'local'): Promise<NetworkInfo[]> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.get(`/networks?source=${source}${distroParam}`)
         return response.data
     }
 
-    async removeNetwork(id: string): Promise<any> {
-        const response = await this.api.delete(`/networks/${id}`)
+    async removeNetwork(id: string, force: boolean = false, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const distroParam = source === 'wsl2' && wslDistro ? `&wslDistro=${encodeURIComponent(wslDistro)}` : ''
+        const response = await this.api.delete(`/networks/${id}?force=${force}&source=${source}${distroParam}`)
         return response.data
     }
 
@@ -213,13 +252,58 @@ class ApiService {
         this.socket.disconnect()
     }
 
-    getComposeFile(projectName: string, workingDir: string, configFiles: string): Promise<{ fileName: string; content: string }> {
+    getComposeFile(projectName: string, workingDir: string, configFiles: string, source: string = 'local'): Promise<{ fileName: string; content: string }> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
         return this.api.post('/compose/file', {
             projectName,
             workingDir,
-            configFiles
+            configFiles,
+            source,
+            wslDistro
         }).then(response => response.data)
     }
-}
 
+    async searchDockerHubImages(query: string, officialOnly: boolean = false): Promise<any> {
+        if (query.length < 2) {
+            return { results: [] }
+        }
+        try {
+            const response = await this.api.post('/commands/search-image', { q: query })
+
+            // Filter for official images if requested
+            let results = response.data.results || []
+            if (officialOnly) {
+                results = results.filter((repo: any) => repo.is_official === true)
+            }
+
+            return {
+                success: response.data.success,
+                results: results,
+                count: results.length
+            }
+        } catch (error) {
+            console.error('Error searching Docker Hub:', error)
+            return { results: [] }
+        }
+    }
+
+    async searchDockerHubImageTags(imageName: string): Promise<any> {
+        if (!imageName || imageName.length === 0) {
+            return { results: [] }
+        }
+        try {
+            const response = await this.api.get(`/commands/search-image-tags?image=${encodeURIComponent(imageName)}`)
+
+            return {
+                success: response.data.success,
+                results: response.data.results || [],
+                count: response.data.count || 0,
+                image: imageName
+            }
+        } catch (error) {
+            console.error('Error searching Docker Hub tags:', error)
+            return { results: [] }
+        }
+    }
+}
 export default new ApiService()

@@ -439,12 +439,14 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import apiService from '../services/api'
+import { useDockerStore } from '../stores/docker'
 
 export default {
   name: 'ContainerDetailsView',
   setup() {
     const route = useRoute()
     const containerId = computed(() => route.params.id)
+    const dockerStore = useDockerStore()
 
     // Reactive data
     const container = ref({})
@@ -543,7 +545,7 @@ export default {
     }
     const loadContainer = async () => {
       try {
-        const containers = await apiService.getContainers()
+        const containers = await apiService.getContainers(true, dockerStore.containerSource)
         container.value = containers.find(c => c.Id === containerId.value) || {}
       } catch (error) {
         console.error('Error loading container:', error)
@@ -552,7 +554,7 @@ export default {
 
     const loadLogs = async () => {
       try {
-        const response = await apiService.getContainerLogs(containerId.value)
+        const response = await apiService.getContainerLogs(containerId.value, 100, dockerStore.containerSource)
         logs.value = response
       } catch (error) {
         console.error('Error loading logs:', error)
@@ -562,7 +564,7 @@ export default {
 
     const loadInspect = async () => {
       try {
-        const response = await apiService.inspectContainer(containerId.value)
+        const response = await apiService.inspectContainer(containerId.value, dockerStore.containerSource)
         inspectData.value = JSON.stringify(response, null, 2)
         // Extract mounts information
         if (response.Mounts) {
@@ -576,7 +578,7 @@ export default {
 
     const loadStats = async () => {
       try {
-        const response = await apiService.getContainerStats(containerId.value)
+        const response = await apiService.getContainerStats(containerId.value, dockerStore.containerSource)
         if (response) {
           stats.value = {
             cpuPercentage: parseFloat(response.cpuPercentage || 0).toFixed(1),
@@ -596,7 +598,7 @@ export default {
 
     const loadFiles = async (path = '/') => {
       try {
-        const response = await apiService.getContainerFiles(containerId.value, path)
+        const response = await apiService.getContainerFiles(containerId.value, path, dockerStore.containerSource)
         files.value = response || []
         currentPath.value = path
       } catch (error) {
@@ -608,7 +610,7 @@ export default {
     const startContainer = async () => {
       loading.value = true
       try {
-        await apiService.startContainer(containerId.value)
+        await apiService.startContainer(containerId.value, dockerStore.containerSource)
         await loadContainer()
       } catch (error) {
         console.error('Error starting container:', error)
@@ -620,7 +622,7 @@ export default {
     const stopContainer = async () => {
       loading.value = true
       try {
-        await apiService.stopContainer(containerId.value)
+        await apiService.stopContainer(containerId.value, dockerStore.containerSource)
         await loadContainer()
       } catch (error) {
         console.error('Error stopping container:', error)
@@ -632,7 +634,7 @@ export default {
     const restartContainer = async () => {
       loading.value = true
       try {
-        await apiService.restartContainer(containerId.value)
+        await apiService.restartContainer(containerId.value, dockerStore.containerSource)
         await loadContainer()
       } catch (error) {
         console.error('Error restarting container:', error)
@@ -645,7 +647,7 @@ export default {
       if (!execCommand.value.trim()) return
 
       try {
-        const response = await apiService.execContainer(containerId.value, execCommand.value)
+        const response = await apiService.execContainer(containerId.value, execCommand.value, dockerStore.containerSource)
         execOutput.value += `$ ${execCommand.value}\n${response}\n\n`
         execCommand.value = ''
       } catch (error) {
@@ -688,7 +690,7 @@ export default {
         const filePath = currentPath.value === '/'
           ? `/${file.name}`
           : `${currentPath.value}/${file.name}`
-        await apiService.downloadContainerFile(containerId.value, filePath)
+        await apiService.downloadContainerFile(containerId.value, filePath, dockerStore.containerSource)
       } catch (error) {
         console.error('Error downloading file:', error)
       }

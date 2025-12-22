@@ -345,7 +345,7 @@ const removeNetwork = (id, name) => {
     'bi-trash',
     'Remove',
     'btn-danger',
-    () => dockerStore.removeNetwork(id)
+    () => dockerStore.removeNetwork(id, true)
   )
 }
 
@@ -361,7 +361,7 @@ const removeAllOrphanedNetworks = () => {
     'btn-danger',
     () => {
       dockerStore.groupedNetworks.orphaned.forEach(network => {
-        dockerStore.removeNetwork(network.Id)
+        dockerStore.removeNetwork(network.Id, true)
       })
     }
   )

@@ -14,6 +14,7 @@
 import { ref } from 'vue'
 import GenericModal from './GenericModal.vue'
 import apiService from '../../services/api'
+import { useDockerStore } from '../../stores/docker'
 
 const props = defineProps({
     modalId: {
@@ -24,6 +25,7 @@ const props = defineProps({
 
 const selectedContainer = ref(null)
 const genericModal = ref(null)
+const dockerStore = useDockerStore()
 
 const showLogs = async (container) => {
     selectedContainer.value = {
@@ -35,7 +37,7 @@ const showLogs = async (container) => {
     genericModal.value.setContent('')
 
     try {
-        const response = await apiService.getContainerLogs(container.Id, 100)
+        const response = await apiService.getContainerLogs(container.Id, 100, dockerStore.containerSource)
         const logs = response || 'No logs available'
         genericModal.value.setContent(logs)
     } catch (error) {

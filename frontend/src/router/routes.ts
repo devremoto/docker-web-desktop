@@ -9,6 +9,7 @@ import DockerCommandsView from '../views/DockerCommandsView.vue'
 import ResourcesView from '../views/ResourcesView.vue'
 import InstallationView from '../views/InstallationView.vue'
 import AboutView from '../views/AboutView.vue'
+import SettingsView from '../views/SettingsView.vue'
 
 const routes: RouteRecordRaw[] = [
     {
@@ -61,6 +62,11 @@ const routes: RouteRecordRaw[] = [
         path: '/about',
         name: 'About',
         component: AboutView
+    },
+    {
+        path: '/settings',
+        name: 'Settings',
+        component: SettingsView
     }
 ]
 

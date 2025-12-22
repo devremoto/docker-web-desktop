@@ -1,4 +1,5 @@
 @echo off
-cd /d "d:\desenvolvimento\docker\web-desktop\backend"
-node src/server.js
-pause > nul
+
+echo Starting Backend Server...
+start "Backend Server" cmd /c "cd backend && npm install && npm start"
+

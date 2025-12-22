@@ -1,22 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const dockerService = require('../services/dockerService');
+const { DockerService } = require('../services/dockerService');
 
 // Get all containers
 router.get('/', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/' */
     try {
+        console.log('GET /containers hit', {
+            all: req.query.all,
+            source: req.query.source,
+            wslDistro: req.query.wslDistro
+        });
         const all = req.query.all === 'true';
-        const containers = await dockerService.getContainers(all);
+        const source = req.query.source || 'local';
+        const wslDistro = req.query.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const containers = await serviceInstance.getContainers(all);
+        console.log('GET /containers result count:', containers.length);
         res.json(containers);
     } catch (error) {
+        console.error('GET /containers error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Get specific container
 router.get('/:id', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}' */
     try {
-        const container = await dockerService.getContainer(req.params.id);
+        const source = req.query.source || 'local';
+        const wslDistro = req.query.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const container = await serviceInstance.getContainer(req.params.id);
         res.json(container);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -25,12 +43,17 @@ router.get('/:id', async (req, res) => {
 
 // Start container
 router.post('/:id/start', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/start' */
     try {
-        const result = await dockerService.startContainer(req.params.id);
+        const source = req.query.source || req.body.source || 'local';
+        const wslDistro = req.query.wslDistro || req.body.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const result = await serviceInstance.startContainer(req.params.id);
 
         // Emit real-time update
         const io = req.app.get('io');
-        io.emit('containerStateChanged', { id: req.params.id, action: 'start' });
+        io.emit('containerStarted', { id: req.params.id });
 
         res.json(result);
     } catch (error) {
@@ -40,8 +63,13 @@ router.post('/:id/start', async (req, res) => {
 
 // Stop container
 router.post('/:id/stop', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/stop' */
     try {
-        const result = await dockerService.stopContainer(req.params.id);
+        const source = req.query.source || req.body.source || 'local';
+        const wslDistro = req.query.wslDistro || req.body.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const result = await serviceInstance.stopContainer(req.params.id);
 
         // Emit real-time update
         const io = req.app.get('io');
@@ -55,9 +83,14 @@ router.post('/:id/stop', async (req, res) => {
 
 // Remove container
 router.delete('/:id', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}' */
     try {
         const force = req.query.force === 'true';
-        const result = await dockerService.removeContainer(req.params.id, force);
+        const source = req.query.source || 'local';
+        const wslDistro = req.query.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const result = await serviceInstance.removeContainer(req.params.id, force);
 
         // Emit real-time update
         const io = req.app.get('io');
@@ -71,9 +104,14 @@ router.delete('/:id', async (req, res) => {
 
 // Get container logs
 router.get('/:id/logs', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/logs' */
     try {
         const tail = parseInt(req.query.tail) || 100;
-        const logs = await dockerService.getContainerLogs(req.params.id, tail);
+        const source = req.query.source || 'local';
+        const wslDistro = req.query.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const logs = await serviceInstance.getContainerLogs(req.params.id, tail);
         res.json(logs);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -82,8 +120,13 @@ router.get('/:id/logs', async (req, res) => {
 
 // Inspect container
 router.get('/:id/inspect', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/inspect' */
     try {
-        const inspection = await dockerService.inspectContainer(req.params.id);
+        const source = req.query.source || 'local';
+        const wslDistro = req.query.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const inspection = await serviceInstance.inspectContainer(req.params.id);
         res.json(inspection);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -92,8 +135,13 @@ router.get('/:id/inspect', async (req, res) => {
 
 // Get container stats
 router.get('/:id/stats', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/stats' */
     try {
-        const stats = await dockerService.getContainerStats(req.params.id);
+        const source = req.query.source || 'local';
+        const wslDistro = req.query.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const stats = await serviceInstance.getContainerStats(req.params.id);
         res.json(stats);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -102,9 +150,14 @@ router.get('/:id/stats', async (req, res) => {
 
 // Get container files
 router.get('/:id/files', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/files' */
     try {
         const path = req.query.path || '/';
-        const files = await dockerService.getContainerFiles(req.params.id, path);
+        const source = req.query.source || 'local';
+        const wslDistro = req.query.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const files = await serviceInstance.getContainerFiles(req.params.id, path);
         res.json(files);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -113,13 +166,17 @@ router.get('/:id/files', async (req, res) => {
 
 // Download container file
 router.get('/:id/files/download', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/files/download' */
     try {
         const filePath = req.query.path;
         if (!filePath) {
             return res.status(400).json({ error: 'File path is required' });
         }
-
-        const fileStream = await dockerService.downloadContainerFile(req.params.id, filePath);
+        const source = req.query.source || 'local';
+        const wslDistro = req.query.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const fileStream = await serviceInstance.downloadContainerFile(req.params.id, filePath);
         const fileName = filePath.split('/').pop();
 
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
@@ -133,13 +190,17 @@ router.get('/:id/files/download', async (req, res) => {
 
 // Execute command in container
 router.post('/:id/exec', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/exec' */
     try {
         const { command } = req.body;
         if (!command) {
             return res.status(400).json({ error: 'Command is required' });
         }
-
-        const result = await dockerService.execContainer(req.params.id, command);
+        const source = req.query.source || req.body.source || 'local';
+        const wslDistro = req.query.wslDistro || req.body.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const result = await serviceInstance.execContainer(req.params.id, command);
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -148,8 +209,13 @@ router.post('/:id/exec', async (req, res) => {
 
 // Restart container
 router.post('/:id/restart', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/restart' */
     try {
-        const result = await dockerService.restartContainer(req.params.id);
+        const source = req.query.source || req.body.source || 'local';
+        const wslDistro = req.query.wslDistro || req.body.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const result = await serviceInstance.restartContainer(req.params.id);
 
         // Emit real-time update
         const io = req.app.get('io');
@@ -158,6 +224,32 @@ router.post('/:id/restart', async (req, res) => {
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Debug endpoint - test connection to different sources
+router.get('/test/source', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/test/source' */
+    try {
+        const source = req.query.source || 'local';
+        const serviceInstance = DockerService.forSource(source);
+        const info = await serviceInstance.getSystemInfo();
+        res.json({
+            source,
+            connected: true,
+            dockerInfo: {
+                Containers: info.Containers,
+                ContainersRunning: info.ContainersRunning,
+                ServerVersion: info.ServerVersion || 'Unknown'
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            source: req.query.source,
+            connected: false,
+            error: error.message
+        });
     }
 });
 
