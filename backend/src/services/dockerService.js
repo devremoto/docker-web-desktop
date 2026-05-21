@@ -3,6 +3,40 @@ const { exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
 
+const ENV_VAR_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function shellQuote(value) {
+    return `'${String(value).replace(/'/g, `'"'"'`)}'`;
+}
+
+function pruneUndefined(value) {
+    if (Array.isArray(value)) {
+        return value
+            .map(pruneUndefined)
+            .filter(item => item !== undefined);
+    }
+
+    if (value && typeof value === 'object') {
+        const entries = Object.entries(value)
+            .map(([key, item]) => [key, pruneUndefined(item)])
+            .filter(([, item]) => item !== undefined);
+
+        return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+    }
+
+    return value === undefined ? undefined : value;
+}
+
+function pickDefined(source, keys) {
+    const result = {};
+    keys.forEach((key) => {
+        if (source[key] !== undefined) {
+            result[key] = source[key];
+        }
+    });
+    return result;
+}
+
 class DockerService {
     constructor(options = {}) {
 
@@ -405,6 +439,313 @@ class DockerService {
         }
     }
 
+    mergeEnvironmentVariables(envList = [], key, value) {
+        const prefix = `${key}=`;
+        const nextEntry = `${key}=${value}`;
+        const filtered = envList.filter(entry => !entry.startsWith(prefix));
+        filtered.push(nextEntry);
+        return filtered;
+    }
+
+    buildShellProfileScript(key, value) {
+        const exportLine = `export ${key}=${shellQuote(value)}`;
+        const successMessage = `Saved ${key} for future shell sessions inside the container.`;
+        const errorMessage = `No writable shell profile was found for ${key}. Recreate the container if the application process needs this variable.`;
+
+        return [
+            'target_file=""',
+            'if [ -n "${HOME:-}" ] && [ -d "$HOME" ]; then',
+            '  candidate="$HOME/.profile"',
+            '  touch "$candidate" 2>/dev/null || true',
+            '  if [ -w "$candidate" ]; then',
+            '    target_file="$candidate"',
+            '  fi',
+            'fi',
+            'if [ -z "$target_file" ] && [ -d /etc/profile.d ]; then',
+            '  candidate="/etc/profile.d/docker-web-desktop-env.sh"',
+            '  touch "$candidate" 2>/dev/null || true',
+            '  chmod 0644 "$candidate" 2>/dev/null || true',
+            '  if [ -w "$candidate" ]; then',
+            '    target_file="$candidate"',
+            '  fi',
+            'fi',
+            'if [ -z "$target_file" ]; then',
+            `  printf '%s\\n' ${shellQuote(errorMessage)} >&2`,
+            '  exit 1',
+            'fi',
+            `printf '%s\\n' ${shellQuote(exportLine)} >> "$target_file"`,
+            `printf '%s\\n' ${shellQuote(successMessage)}`,
+            'printf "Profile file: %s\\n" "$target_file"'
+        ].join('\n');
+    }
+
+    async execShellInContainer(id, script) {
+        const container = this.docker.getContainer(id);
+        const exec = await container.exec({
+            Cmd: ['sh', '-lc', script],
+            AttachStdout: true,
+            AttachStderr: true
+        });
+        const stream = await exec.start({ hijack: true, stdin: false });
+
+        return new Promise((resolve, reject) => {
+            let output = '';
+            stream.on('data', (chunk) => {
+                output += chunk.toString();
+            });
+            stream.on('end', async () => {
+                try {
+                    const execInfo = await exec.inspect();
+                    output = output.replace(/[\u0001\u0002][\u0000]{3}[\u0000-\uFFFF]{4}/g, '');
+                    output = output.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+
+                    if (execInfo.ExitCode && execInfo.ExitCode !== 0) {
+                        reject(new Error(output.trim() || `Shell execution failed with exit code ${execInfo.ExitCode}`));
+                        return;
+                    }
+
+                    resolve(output.trim());
+                } catch (error) {
+                    reject(error);
+                }
+            });
+            stream.on('error', reject);
+        });
+    }
+
+    async setContainerEnvironmentVariableInShellProfile(id, key, value) {
+        if (!ENV_VAR_NAME_PATTERN.test(key)) {
+            throw new Error(`Invalid environment variable name: ${key}`);
+        }
+
+        try {
+            const container = this.docker.getContainer(id);
+            const inspectData = await container.inspect();
+
+            if (!inspectData?.State?.Running) {
+                throw new Error('Container must be running to update a shell profile.');
+            }
+
+            const output = await this.execShellInContainer(id, this.buildShellProfileScript(key, value));
+            return output;
+        } catch (error) {
+            throw new Error(`Failed to update shell profile for container ${id}: ${error.message}`);
+        }
+    }
+
+    buildCreateOptionsFromInspect(inspectData, env) {
+        const config = inspectData.Config || {};
+        const hostConfig = inspectData.HostConfig || {};
+        const topLevelKeys = [
+            'Hostname',
+            'Domainname',
+            'User',
+            'AttachStdin',
+            'AttachStdout',
+            'AttachStderr',
+            'ExposedPorts',
+            'Tty',
+            'OpenStdin',
+            'StdinOnce',
+            'Cmd',
+            'Healthcheck',
+            'ArgsEscaped',
+            'Image',
+            'Volumes',
+            'WorkingDir',
+            'Entrypoint',
+            'NetworkDisabled',
+            'MacAddress',
+            'OnBuild',
+            'Labels',
+            'StopSignal',
+            'StopTimeout',
+            'Shell'
+        ];
+        const hostConfigKeys = [
+            'AutoRemove',
+            'Binds',
+            'BlkioWeight',
+            'BlkioWeightDevice',
+            'CapAdd',
+            'CapDrop',
+            'Cgroup',
+            'CgroupParent',
+            'CgroupnsMode',
+            'ConsoleSize',
+            'CpuCount',
+            'CpuPercent',
+            'CpuPeriod',
+            'CpuQuota',
+            'CpuRealtimePeriod',
+            'CpuRealtimeRuntime',
+            'CpuShares',
+            'CpusetCpus',
+            'CpusetMems',
+            'DeviceCgroupRules',
+            'DeviceRequests',
+            'Devices',
+            'Dns',
+            'DnsOptions',
+            'DnsSearch',
+            'ExtraHosts',
+            'GroupAdd',
+            'IOMaximumBandwidth',
+            'IOMaximumIOps',
+            'IpcMode',
+            'Isolation',
+            'Links',
+            'LogConfig',
+            'MaskedPaths',
+            'Memory',
+            'MemoryReservation',
+            'MemorySwap',
+            'MemorySwappiness',
+            'Mounts',
+            'NanoCpus',
+            'NetworkMode',
+            'OomKillDisable',
+            'OomScoreAdj',
+            'PidMode',
+            'PidsLimit',
+            'PortBindings',
+            'Privileged',
+            'PublishAllPorts',
+            'ReadonlyPaths',
+            'ReadonlyRootfs',
+            'RestartPolicy',
+            'SecurityOpt',
+            'ShmSize',
+            'StorageOpt',
+            'Sysctls',
+            'Tmpfs',
+            'Ulimits',
+            'UsernsMode',
+            'UTSMode',
+            'VolumesFrom',
+            'Runtime',
+            'Init'
+        ];
+
+        const createOptions = pickDefined(config, topLevelKeys);
+        createOptions.Env = env;
+        createOptions.name = (inspectData.Name || '').replace(/^\//, '');
+        createOptions.HostConfig = pickDefined(hostConfig, hostConfigKeys);
+
+        if ((!createOptions.HostConfig.Mounts || createOptions.HostConfig.Mounts.length === 0) && Array.isArray(inspectData.Mounts)) {
+            createOptions.HostConfig.Mounts = inspectData.Mounts
+                .filter(mount => mount.Type && mount.Destination)
+                .map((mount) => {
+                    const mountConfig = {
+                        Type: mount.Type,
+                        Target: mount.Destination,
+                        ReadOnly: mount.RW === false
+                    };
+
+                    if (mount.Type === 'volume') {
+                        mountConfig.Source = mount.Name || mount.Source;
+                    } else if (mount.Source) {
+                        mountConfig.Source = mount.Source;
+                    }
+
+                    if (mount.Propagation) {
+                        mountConfig.BindOptions = { Propagation: mount.Propagation };
+                    }
+
+                    return mountConfig;
+                });
+        }
+
+        const networks = inspectData.NetworkSettings?.Networks || {};
+        const networkNames = Object.keys(networks);
+        const primaryNetwork = createOptions.HostConfig.NetworkMode && networks[createOptions.HostConfig.NetworkMode]
+            ? createOptions.HostConfig.NetworkMode
+            : networkNames[0];
+
+        if (primaryNetwork && !['default', 'bridge', 'host', 'none'].includes(primaryNetwork)) {
+            const endpoint = networks[primaryNetwork] || {};
+            createOptions.NetworkingConfig = {
+                EndpointsConfig: {
+                    [primaryNetwork]: pruneUndefined({
+                        Aliases: endpoint.Aliases,
+                        Links: endpoint.Links,
+                        IPAMConfig: endpoint.IPAMConfig
+                    })
+                }
+            };
+        }
+
+        return pruneUndefined(createOptions);
+    }
+
+    async reconnectSecondaryNetworks(containerId, inspectData) {
+        const networks = inspectData.NetworkSettings?.Networks || {};
+        const hostNetworkMode = inspectData.HostConfig?.NetworkMode;
+
+        for (const [networkName, endpoint] of Object.entries(networks)) {
+            if (networkName === hostNetworkMode) {
+                continue;
+            }
+
+            if (['bridge', 'host', 'none'].includes(networkName)) {
+                continue;
+            }
+
+            const network = this.docker.getNetwork(networkName);
+            await network.connect({
+                Container: containerId,
+                EndpointConfig: pruneUndefined({
+                    Aliases: endpoint.Aliases,
+                    Links: endpoint.Links,
+                    IPAMConfig: endpoint.IPAMConfig
+                })
+            });
+        }
+    }
+
+    async recreateContainerWithEnvironmentVariable(id, key, value) {
+        if (!ENV_VAR_NAME_PATTERN.test(key)) {
+            throw new Error(`Invalid environment variable name: ${key}`);
+        }
+
+        try {
+            const container = this.docker.getContainer(id);
+            const inspectData = await container.inspect();
+            const mergedEnv = this.mergeEnvironmentVariables(inspectData.Config?.Env || [], key, value);
+            const createOptions = this.buildCreateOptionsFromInspect(inspectData, mergedEnv);
+            const originalName = createOptions.name;
+            const wasRunning = Boolean(inspectData.State?.Running);
+
+            if (wasRunning) {
+                await container.stop();
+            }
+
+            await container.remove({ force: true });
+
+            const recreatedContainer = await this.docker.createContainer(createOptions);
+            await this.reconnectSecondaryNetworks(recreatedContainer.id, inspectData);
+
+            if (wasRunning) {
+                await recreatedContainer.start();
+            }
+
+            const recreatedInspect = await recreatedContainer.inspect();
+
+            return {
+                success: true,
+                oldId: id,
+                newId: recreatedInspect.Id,
+                name: originalName,
+                started: wasRunning,
+                message: wasRunning
+                    ? `Container ${originalName} recreated and started with ${key}.`
+                    : `Container ${originalName} recreated with ${key}. Start it to use the updated environment.`
+            };
+        } catch (error) {
+            throw new Error(`Failed to recreate container ${id}: ${error.message}`);
+        }
+    }
+
     async execContainer(id, command) {
         try {
             if (this.useWSL) {
@@ -547,6 +888,42 @@ class DockerService {
             return { success: true, message: `Image ${id} removed` };
         } catch (error) {
             throw new Error(`Failed to remove image ${id}: ${error.message}`);
+        }
+    }
+
+    async pullImage(imageName, io) {
+        try {
+            if (this.useWSL) {
+                const output = await this.executeWSLDockerCommand(`pull "${imageName}"`);
+                return { success: true, message: `Image ${imageName} pulled`, output };
+            }
+            return new Promise((resolve, reject) => {
+                this.docker.pull(imageName, (err, stream) => {
+                    if (err) {
+                        return reject(new Error(`Failed to pull image ${imageName}: ${err.message}`));
+                    }
+                    this.docker.modem.followProgress(stream, onFinished, onProgress);
+                    function onFinished(err, output) {
+                        if (err) {
+                            return reject(new Error(`Failed to pull image ${imageName}: ${err.message}`));
+                        } resolve({ success: true, message: `Image ${imageName} pulled`, output });
+                    }
+                    function onProgress(event) {
+                        // Optionally handle progress events here
+                        //send to socket.io using emit
+                        io.emit('imagePullProgress', {
+                            image: imageName,
+                            status: event.status,
+                            id: event.id,
+                            progress: event.progress || null,
+                            detail: event.detail || null
+
+                        });
+                    }
+                });
+            });
+        } catch (error) {
+            throw new Error(`Failed to pull image ${imageName}: ${error.message}`);
         }
     }
 

@@ -82,6 +82,7 @@
       :container="container"
       :is-grouped="true"
       @navigate="$emit('navigate', $event)"
+      @setEnv="$emit('setEnv', $event)"
       @start="$emit('start', $event)"
       @stop="$emit('stop', $event)"
       @logs="$emit('logs', $event)"
@@ -94,69 +95,70 @@ import { computed } from 'vue'
 import ContainerRow from './ContainerRow.vue'
 
 const props = defineProps({
-    group: {
-        type: Object,
-        required: true
-    },
-    isExpanded: {
-        type: Boolean,
-        default: true
-    }
+  group: {
+    type: Object,
+    required: true
+  },
+  isExpanded: {
+    type: Boolean,
+    default: true
+  }
 })
 
 const emit = defineEmits([
-    'toggleGroup',
-    'startGroup',
-    'stopGroup',
-    'restartGroup',
-    'removeGroup',
-    'viewComposeFile',
-    'navigate',
-    'start',
-    'stop',
-    'logs',
-    'remove'
+  'toggleGroup',
+  'startGroup',
+  'stopGroup',
+  'restartGroup',
+  'removeGroup',
+  'viewComposeFile',
+  'navigate',
+  'setEnv',
+  'start',
+  'stop',
+  'logs',
+  'remove'
 ])
 
 const runningCount = computed(() => {
-    return props.group.containers.filter(container => container.State === 'running').length
+  return props.group.containers.filter(container => container.State === 'running').length
 })
 
 const toggleGroup = () => {
-    emit('toggleGroup', props.group.key)
+  emit('toggleGroup', props.group.key)
 }
 </script>
 
 <style scoped>
 .cursor-pointer {
-    cursor: pointer;
-    user-select: none;
+  cursor: pointer;
+  user-select: none;
 }
 
 .cursor-pointer:hover {
-    background-color: #f8f9fa;
+  background-color: #f8f9fa;
 }
 
 [data-bs-theme="light"] .group-header {
-    background-color: #f8f9fa;
-    border-top: 2px solid #dee2e6;
-    transition: background-color 0.15s ease-in-out;
+  background-color: #f8f9fa;
+  border-top: 2px solid #dee2e6;
+  transition: background-color 0.15s ease-in-out;
 }
 
 [data-bs-theme="light"].group-header:hover {
-    background-color: #e9ecef;
+  background-color: #e9ecef;
 }
 
 [data-bs-theme="light"].group-header.cursor-pointer:hover {
-    background-color: #dee2e6;
+  background-color: #dee2e6;
 }
 
 .btn-link {
-    color: #6c757d;
-    text-decoration: none;
+  color: #6c757d;
+  text-decoration: none;
 }
 
 .btn-link:hover {
-    color: #495057;
+  color: #495057;
 }
 </style>

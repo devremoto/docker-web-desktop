@@ -26,6 +26,13 @@
             <span class="badge" :class="statusBadgeClass">{{ containerStatus }}</span>
           </div>
           <div class="btn-group">
+            <button
+              class="btn btn-outline-primary"
+              @click="openSetEnvModal"
+              :disabled="loading || !container.Id"
+            >
+              <i class="bi bi-sliders2"></i> Environment
+            </button>
             <button 
               class="btn btn-success" 
               @click="startContainer" 
@@ -432,19 +439,29 @@
         </div>
       </div>
     </div>
+
+    <SetEnvironmentVariableModal
+      ref="setEnvironmentVariableModal"
+      @recreated="handleContainerRecreated"
+    />
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import apiService from '../services/api'
 import { useDockerStore } from '../stores/docker'
+import SetEnvironmentVariableModal from '../components/docker/SetEnvironmentVariableModal.vue'
 
 export default {
   name: 'ContainerDetailsView',
+  components: {
+    SetEnvironmentVariableModal
+  },
   setup() {
     const route = useRoute()
+    const router = useRouter()
     const containerId = computed(() => route.params.id)
     const dockerStore = useDockerStore()
 
@@ -461,6 +478,7 @@ export default {
     const loading = ref(false)
     const execCommand = ref('')
     const execOutput = ref('')
+    const setEnvironmentVariableModal = ref(null)
     const currentPath = ref('/')
     const files = ref([])
     const mounts = ref([])
@@ -643,6 +661,20 @@ export default {
       }
     }
 
+    const openSetEnvModal = () => {
+      if (!container.value?.Id) return
+      setEnvironmentVariableModal.value?.showForContainer(container.value)
+    }
+
+    const handleContainerRecreated = async (result) => {
+      if (!result?.newId) {
+        await loadContainer()
+        return
+      }
+
+      await router.push(`/containers/${result.newId}`)
+    }
+
     const executeCommand = async () => {
       if (!execCommand.value.trim()) return
 
@@ -751,6 +783,15 @@ export default {
       logsInterval = setInterval(loadLogs, 10000) // Update logs every 10 seconds
     })
 
+    watch(containerId, async () => {
+      execOutput.value = ''
+      await loadContainer()
+      await loadLogs()
+      await loadInspect()
+      await loadFiles('/')
+      await loadStats()
+    })
+
     onUnmounted(() => {
       if (statsInterval) clearInterval(statsInterval)
       if (logsInterval) clearInterval(logsInterval)
@@ -769,6 +810,7 @@ export default {
       highlightedInspectData,
       execCommand,
       execOutput,
+      setEnvironmentVariableModal,
       currentPath,
       files,
       mounts,
@@ -776,6 +818,8 @@ export default {
       startContainer,
       stopContainer,
       restartContainer,
+      openSetEnvModal,
+      handleContainerRecreated,
       executeCommand,
       clearLogs,
       refreshLogs,

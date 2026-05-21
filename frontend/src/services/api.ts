@@ -170,6 +170,30 @@ class ApiService {
         return response.data
     }
 
+    async setContainerEnvironmentVariable(id: string, key: string, value: string, source: string = 'local'): Promise<string> {
+        return this.setContainerEnvironmentVariableInShellProfile(id, key, value, source)
+    }
+
+    async setContainerEnvironmentVariableInShellProfile(id: string, key: string, value: string, source: string = 'local'): Promise<string> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const response = await this.api.post(`/containers/${id}/environment/shell-profile?source=${source}`, {
+            key,
+            value,
+            wslDistro
+        })
+        return response.data.output
+    }
+
+    async recreateContainerWithEnvironmentVariable(id: string, key: string, value: string, source: string = 'local'): Promise<any> {
+        const wslDistro = localStorage.getItem('wslDistro') || undefined
+        const response = await this.api.post(`/containers/${id}/recreate?source=${source}`, {
+            key,
+            value,
+            wslDistro
+        })
+        return response.data
+    }
+
     async restartContainer(id: string, source: string = 'local'): Promise<any> {
         const wslDistro = localStorage.getItem('wslDistro') || undefined
         const response = await this.api.post(`/containers/${id}/restart?source=${source}`, { wslDistro })

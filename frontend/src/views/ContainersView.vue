@@ -65,6 +65,7 @@
       @removeGroup="removeGroup"
       @viewComposeFile="viewComposeFile"
       @navigate="goToContainerDetails"
+      @setEnv="openSetEnvModal"
       @start="startContainer"
       @stop="stopContainer"
       @logs="showLogs"
@@ -75,6 +76,7 @@
     <LogsModal ref="logsModal" />
     <ConfirmationModal ref="confirmationModal" />
     <ComposeModal ref="composeModal" />
+    <SetEnvironmentVariableModal ref="setEnvironmentVariableModal" />
   </div>
 </template>
 
@@ -86,6 +88,7 @@ import ContainerTable from '../components/docker/ContainerTable.vue'
 import LogsModal from '../components/docker/LogsModal.vue'
 import ConfirmationModal from '../components/docker/ConfirmationModal.vue'
 import ComposeModal from '../components/docker/ComposeModal.vue'
+import SetEnvironmentVariableModal from '../components/docker/SetEnvironmentVariableModal.vue'
 
 const router = useRouter()
 const dockerStore = useDockerStore()
@@ -96,6 +99,7 @@ const expandedGroups = ref(new Set())
 const logsModal = ref(null)
 const confirmationModal = ref(null)
 const composeModal = ref(null)
+const setEnvironmentVariableModal = ref(null)
 
 const filteredContainers = computed(() => {
   if (showAll.value) {
@@ -303,6 +307,10 @@ const removeContainer = (id, force) => {
       dockerStore.removeContainer(id, true)
     }
   )
+}
+
+const openSetEnvModal = (container) => {
+  setEnvironmentVariableModal.value.showForContainer(container)
 }
 
 const showLogs = async (container) => {

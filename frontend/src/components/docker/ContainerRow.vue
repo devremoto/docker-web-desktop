@@ -35,6 +35,13 @@
     <td class="py-2 text-center">
       <div class="btn-group btn-group-sm" role="group">
         <button 
+          class="btn btn-outline-primary"
+          @click.stop="$emit('setEnv', container)"
+          :title="container.State === 'running' ? 'Set environment variable' : 'Set environment variable or recreate the container with a new value'"
+        >
+          <i class="bi bi-sliders2"></i>
+        </button>
+        <button 
           v-if="container.State === 'exited'"
           class="btn btn-outline-success"
           @click.stop="$emit('start', container.Id)"
@@ -84,7 +91,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['navigate', 'start', 'stop', 'logs', 'remove'])
+defineEmits(['navigate', 'setEnv', 'start', 'stop', 'logs', 'remove'])
 
 const containerName = computed(() => {
   return props.container.Names?.[0]?.replace('/', '') || props.container.Id.slice(0, 12)

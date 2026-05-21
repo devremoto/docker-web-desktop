@@ -41,4 +41,21 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+router.post('/pull', async (req, res) => {
+    /* #swagger.tags = ['Images'] */
+    /* #swagger.path = '/images/pull' */
+    try {
+        const imageName = req.body.imageName;
+        const source = req.body.source || 'local';
+        const wslDistro = req.body.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        var io = req.app.get('io');
+
+        const result = await serviceInstance.pullImage(imageName, io);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

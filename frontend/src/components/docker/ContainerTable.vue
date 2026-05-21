@@ -3,7 +3,7 @@
     <div class="card-header bg-success text-white">
           <h5 class="mb-0">
             <i class="bi bi-check-circle me-2"></i>
-            Grouped ({{ groupedContainers.groups.length}}) - Ungrouped ({{ groupedContainers.ungrouped.length }})
+            Grouped ({{ groupedContainers.groups.length }}) - Ungrouped ({{ groupedContainers.ungrouped.length }})
           </h5>
         </div>
     <div class="card-body p-0">
@@ -33,6 +33,7 @@
               @removeGroup="$emit('removeGroup', $event)"
               @viewComposeFile="$emit('viewComposeFile', $event)"
               @navigate="$emit('navigate', $event)"
+                            @setEnv="$emit('setEnv', $event)"
               @start="$emit('start', $event)"
               @stop="$emit('stop', $event)"
               @logs="$emit('logs', $event)"
@@ -45,6 +46,7 @@
               :key="container.Id"
               :container="container"
               @navigate="$emit('navigate', $event)"
+                            @setEnv="$emit('setEnv', $event)"
               @start="$emit('start', $event)"
               @stop="$emit('stop', $event)"
               @logs="$emit('logs', $event)"
@@ -81,6 +83,7 @@ defineEmits([
     'removeGroup',
     'viewComposeFile',
     'navigate',
+    'setEnv',
     'start',
     'stop',
     'logs',

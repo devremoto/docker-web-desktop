@@ -265,6 +265,42 @@
         }
       }
     },
+    "/images/pull": {
+      "post": {
+        "tags": [
+          "Images"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "imageName": {
+                  "example": "any"
+                },
+                "source": {
+                  "example": "any"
+                },
+                "wslDistro": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
     "/volumes/": {
       "get": {
         "tags": [

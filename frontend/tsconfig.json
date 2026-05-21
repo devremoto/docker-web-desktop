@@ -23,7 +23,6 @@
         "noFallthroughCasesInSwitch": true,
         "forceConsistentCasingInFileNames": true,
         /* Vue specific */
-        "baseUrl": ".",
         "paths": {
             "@/*": [
                 "./src/*"

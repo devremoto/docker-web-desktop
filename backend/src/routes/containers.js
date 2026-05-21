@@ -207,6 +207,49 @@ router.post('/:id/exec', async (req, res) => {
     }
 });
 
+router.post('/:id/environment/shell-profile', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/environment/shell-profile' */
+    try {
+        const { key, value = '' } = req.body;
+        if (!key) {
+            return res.status(400).json({ error: 'Environment variable name is required' });
+        }
+
+        const source = req.query.source || req.body.source || 'local';
+        const wslDistro = req.query.wslDistro || req.body.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const result = await serviceInstance.setContainerEnvironmentVariableInShellProfile(req.params.id, key, value);
+        res.json({ success: true, output: result });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.post('/:id/recreate', async (req, res) => {
+    /* #swagger.tags = ['Containers'] */
+    /* #swagger.path = '/containers/{id}/recreate' */
+    try {
+        const { key, value = '' } = req.body;
+        if (!key) {
+            return res.status(400).json({ error: 'Environment variable name is required' });
+        }
+
+        const source = req.query.source || req.body.source || 'local';
+        const wslDistro = req.query.wslDistro || req.body.wslDistro || undefined;
+        const serviceInstance = new DockerService({ source, wslDistro });
+        const result = await serviceInstance.recreateContainerWithEnvironmentVariable(req.params.id, key, value);
+
+        const io = req.app.get('io');
+        io.emit('containerRemoved', { id: req.params.id });
+        io.emit('containerStateChanged', { id: result.newId, action: 'recreate' });
+
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Restart container
 router.post('/:id/restart', async (req, res) => {
     /* #swagger.tags = ['Containers'] */
