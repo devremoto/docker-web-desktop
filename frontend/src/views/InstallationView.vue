@@ -539,12 +539,13 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o 
             <div class="installation-step mb-4">
               <div class="step-header">
                 <span class="step-number">5</span>
-                <h4 class="step-title">Install Docker Engine</h4>
+                <h4 class="step-title">Install Docker Engine + Docker Compose</h4>
               </div>
+              <p class="step-description">Install Docker and Compose (plugin first, standalone fallback):</p>
               <div class="code-block">
                 <pre class="bg-dark text-light p-3 rounded"><code>sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin</code></pre>
-                <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard(this)" data-text="sudo apt update&#10;sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin">
+sudo apt install -y docker.io docker-compose-v2 || sudo apt install -y docker.io docker-compose</code></pre>
+                <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard(this)" data-text="sudo apt update&#10;sudo apt install -y docker.io docker-compose-v2 || sudo apt install -y docker.io docker-compose">
                   <i class="bi bi-clipboard me-1"></i>Copy
                 </button>
               </div>
@@ -633,7 +634,7 @@ source ~/.bashrc</code></pre>
 
             <div class="alert alert-success mt-4">
               <h5><i class="bi bi-check-circle me-2"></i>Success!</h5>
-              <p class="mb-0">Docker and Docker Compose are now available on WSL2. You can use this Docker Desktop Web UI by selecting "WSL2" as the container source in the app.</p>
+              <p class="mb-0">Docker and Docker Compose are now available on WSL2. You can now use Docker Web Desktop with the WSL2 Docker source.</p>
             </div>
 
             <div class="alert alert-warning mt-3">
