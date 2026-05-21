@@ -1,6 +1,22 @@
-# .
+# Docker Web Desktop Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 + Vite frontend for Docker Web Desktop.
+
+For full project setup and backend instructions, see the root `README.md`.
+
+## WSL2 + Docker Notes
+
+If you run the app against Docker in WSL, use the automated scripts from the repository root:
+
+- `public/install-wsl2.bat` (run on Windows as Administrator)
+- `public/install-docker-wsl2.sh` (run inside WSL)
+
+After installation inside WSL, verify:
+
+```bash
+docker --version
+docker compose version
+```
 
 ## Recommended IDE Setup
 
@@ -9,7 +25,7 @@ This template should help get you started developing with Vue 3 in Vite.
 ## Recommended Browser Setup
 
 - Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
+  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
   - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
 - Firefox:
   - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)

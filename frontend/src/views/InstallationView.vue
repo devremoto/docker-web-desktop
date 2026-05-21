@@ -277,7 +277,7 @@ cd frontend && npm run dev</code></pre>
             <!-- Automated WSL2 Installation -->
             <div class="alert alert-success mb-4">
               <h5><i class="bi bi-lightning-charge me-2"></i>Quick Installation (Recommended)</h5>
-              <p class="mb-3">Download and run our automated installation script that handles the complete WSL2 installation:</p>
+              <p class="mb-3">Download and run our automated installation script that handles Node.js, WSL2, and then calls bash inside WSL to install Docker Engine and Docker Compose:</p>
               
               <!-- PowerShell Version -->
               <div class="mb-3">
@@ -318,7 +318,8 @@ cd frontend && npm run dev</code></pre>
                 <ol class="mb-0 mt-2 text-dark">
                   <li>Download the Batch script (.bat) using the button above</li>
                   <li>Right-click <code>install-wsl2.bat</code> and select <strong>"Run as administrator"</strong></li>
-                  <li>Follow the prompts and restart when complete</li>
+                  <li>Follow the prompts. The script installs Docker inside WSL automatically</li>
+                  <li>After Ubuntu initializes, verify in WSL: <code>docker --version</code> and <code>docker compose version</code></li>
                 </ol>
               </div>
             </div>
@@ -459,11 +460,12 @@ wsl --list --verbose
 
             <div class="alert alert-info mb-4">
               <h6><i class="bi bi-info-circle me-2"></i>Automated Installation</h6>
-              <p class="mb-2">You can download and run our automated installation script that performs all the steps below:</p>
+              <p class="mb-2">You can download and run our automated installation script that performs all the steps below, including Docker Compose setup and verification:</p>
               <ol class="mb-0">
                 <li>Download the script using the button above</li>
                 <li>In WSL2 terminal: <code>chmod +x install-docker-wsl2.sh</code></li>
                 <li>Run: <code>./install-docker-wsl2.sh</code></li>
+                <li>Verify: <code>docker --version</code> and <code>docker compose version</code></li>
               </ol>
             </div>
 
@@ -589,19 +591,22 @@ newgrp docker</code></pre>
             <div class="installation-step mb-4">
               <div class="step-header">
                 <span class="step-number">2</span>
-                <h4 class="step-title">Verify Docker is Running</h4>
+                <h4 class="step-title">Verify Docker and Compose</h4>
               </div>
               <p class="step-description">Test the installation:</p>
               <div class="code-block">
                 <pre class="bg-dark text-light p-3 rounded"><code># Check Docker version
 docker --version
 
+# Check Docker Compose
+docker compose version
+
 # Check Docker status
 sudo service docker status
 
 # Run test container
 docker run hello-world</code></pre>
-                <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard(this)" data-text="docker --version&#10;sudo service docker status&#10;docker run hello-world">
+                <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard(this)" data-text="docker --version&#10;docker compose version&#10;sudo service docker status&#10;docker run hello-world">
                   <i class="bi bi-clipboard me-1"></i>Copy
                 </button>
               </div>
@@ -628,7 +633,7 @@ source ~/.bashrc</code></pre>
 
             <div class="alert alert-success mt-4">
               <h5><i class="bi bi-check-circle me-2"></i>Success!</h5>
-              <p class="mb-0">Docker is now running on WSL2. You can use this Docker Desktop Web UI by selecting "WSL2" as the container source in the app.</p>
+              <p class="mb-0">Docker and Docker Compose are now available on WSL2. You can use this Docker Desktop Web UI by selecting "WSL2" as the container source in the app.</p>
             </div>
 
             <div class="alert alert-warning mt-3">

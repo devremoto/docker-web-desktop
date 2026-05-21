@@ -8,6 +8,19 @@ This guide explains how to configure the Docker Web Desktop to access containers
 - Docker Desktop for Windows OR Docker installed in WSL2
 - Docker Web Desktop application
 
+## Recommended Installation Flow
+
+1. Run `public/install-wsl2.bat` as Administrator on Windows.
+2. Let the script install WSL2 and then execute Docker setup inside Ubuntu/WSL.
+3. If prompted, reboot and launch Ubuntu once to complete first-time initialization.
+4. Inside WSL, verify:
+
+   ```bash
+   docker --version
+   docker compose version
+   docker run hello-world
+   ```
+
 ## Configuration Methods
 
 ### Method 1: TCP Connection (Recommended for separate WSL2 Docker)
@@ -15,11 +28,13 @@ This guide explains how to configure the Docker Web Desktop to access containers
 If you have Docker running inside WSL2 (not Docker Desktop), you need to expose the Docker daemon on TCP:
 
 1. **In your WSL2 terminal**, edit the Docker daemon configuration:
+
    ```bash
    sudo nano /etc/docker/daemon.json
    ```
 
 2. Add TCP socket configuration:
+
    ```json
    {
      "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"]
@@ -27,11 +42,13 @@ If you have Docker running inside WSL2 (not Docker Desktop), you need to expose 
    ```
 
 3. Restart Docker:
+
    ```bash
    sudo systemctl restart docker
    ```
 
 4. **In Windows**, create/edit `.env` file in the backend directory:
+
    ```env
    WSL2_DOCKER_HOST=localhost
    WSL2_DOCKER_PORT=2375
@@ -51,9 +68,11 @@ If you want to access WSL2 Docker via socket path:
 
 1. Enable WSL2 network sharing
 2. In `.env` file:
+
    ```env
    WSL2_DOCKER_SOCKET=\\wsl$\Ubuntu\var\run\docker.sock
    ```
+
    (Replace `Ubuntu` with your WSL2 distribution name)
 
 ## Usage
@@ -62,6 +81,17 @@ If you want to access WSL2 Docker via socket path:
 2. Open the dashboard
 3. Use the dropdown at the top to switch between "Local" and "WSL2"
 4. The dashboard will show containers from the selected source
+
+### Docker Compose inside WSL
+
+When using the WSL daemon, run compose commands inside WSL in your project directory:
+
+```bash
+docker compose up -d
+docker compose ps
+docker compose logs -f
+docker compose down
+```
 
 ## Troubleshooting
 
@@ -80,7 +110,8 @@ If you want to access WSL2 Docker via socket path:
 ### Connection timeout
 
 - Verify the WSL2_DOCKER_PORT and WSL2_DOCKER_HOST values in .env
-- Check if Docker is listening on the configured port: 
+- Check if Docker is listening on the configured port:
+
   ```bash
   # In WSL2
   sudo netstat -tlnp | grep 2375

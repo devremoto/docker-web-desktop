@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Docker Installation Script for WSL2
-# This script automates the installation of Docker Engine on WSL2 (Ubuntu)
+# This script automates the installation of Docker Engine and Docker Compose on WSL2 (Ubuntu)
 
 set -e
 
@@ -22,34 +22,50 @@ if ! grep -q "microsoft" /proc/version; then
     exit 1
 fi
 
-echo -e "${BLUE}Step 1: Updating package repository...${NC}"
+echo -e "${BLUE}Step 1: Checking Node.js installation...${NC}"
+if command -v node >/dev/null 2>&1; then
+  echo -e "${GREEN}Node.js already installed: $(node --version)${NC}"
+else
+  echo -e "${BLUE}Node.js not found. Installing nodejs and npm...${NC}"
+  sudo apt update
+  sudo apt install -y nodejs npm
+fi
+
+if command -v node >/dev/null 2>&1; then
+  echo "Node.js version: $(node --version)"
+else
+  echo -e "${RED}Node.js installation failed.${NC}"
+  exit 1
+fi
+
+if command -v npm >/dev/null 2>&1; then
+  echo "npm version: $(npm --version)"
+else
+  echo -e "${RED}npm installation failed.${NC}"
+  exit 1
+fi
+
+echo -e "${BLUE}Step 2: Updating package repository...${NC}"
 sudo apt update && sudo apt upgrade -y
 
-echo -e "${BLUE}Step 2: Installing prerequisites...${NC}"
+echo -e "${BLUE}Step 3: Installing prerequisites...${NC}"
 sudo apt install -y \
-    apt-transport-https \
     ca-certificates \
     curl \
-    gnupg \
-    lsb-release
+  gnupg
 
-echo -e "${BLUE}Step 3: Adding Docker's official GPG key...${NC}"
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo -e "${BLUE}Step 4: Installing Docker Engine and Compose...${NC}"
+if sudo apt install -y docker.io docker-compose-v2; then
+  echo -e "${GREEN}Installed docker.io + docker-compose-v2${NC}"
+else
+  echo -e "${BLUE}docker-compose-v2 package not available, using docker-compose fallback...${NC}"
+  sudo apt install -y docker.io docker-compose
+fi
 
-echo -e "${BLUE}Step 4: Setting up Docker repository...${NC}"
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+echo -e "${BLUE}Step 5: Adding user to docker group...${NC}"
+sudo usermod -aG docker "$USER"
 
-echo -e "${BLUE}Step 5: Installing Docker Engine...${NC}"
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-echo -e "${BLUE}Step 6: Adding user to docker group...${NC}"
-sudo usermod -aG docker $USER
-
-echo -e "${BLUE}Step 7: Starting Docker service...${NC}"
+echo -e "${BLUE}Step 6: Starting Docker service...${NC}"
 sudo service docker start
 
 echo ""
@@ -57,18 +73,40 @@ echo -e "${GREEN}================================================${NC}"
 echo -e "${GREEN}Docker installation completed successfully!${NC}"
 echo -e "${GREEN}================================================${NC}"
 echo ""
-echo "Testing Docker installation..."
+echo "Testing Docker installation in WSL..."
 docker --version
 
 echo ""
+if docker compose version >/dev/null 2>&1; then
+  echo "Docker Compose (plugin) detected:"
+  docker compose version
+elif command -v docker-compose >/dev/null 2>&1; then
+  echo "Docker Compose (standalone) detected:"
+  docker-compose --version
+else
+  echo -e "${RED}Docker Compose is not available.${NC}"
+  exit 1
+fi
+
+echo ""
 echo "Running hello-world container..."
-docker run hello-world
+if docker run hello-world; then
+  echo -e "${GREEN}Docker engine test passed.${NC}"
+else
+  echo -e "${RED}Docker hello-world test failed. Check daemon status.${NC}"
+  exit 1
+fi
 
 echo ""
 echo -e "${BLUE}Next steps:${NC}"
 echo "1. Close this terminal and open a new one to apply group changes"
-echo "2. Run 'docker --version' to verify installation"
-echo "3. Use Docker Desktop Web UI and select 'WSL2' as container source"
+echo "2. Run 'docker --version' and 'docker compose version'"
+echo "3. Use Docker Web Desktop with WSL2 Docker source"
+echo "4. Basic Docker Compose flow inside WSL:"
+echo "   docker compose up -d"
+echo "   docker compose ps"
+echo "   docker compose logs -f"
+echo "   docker compose down"
 echo ""
 echo -e "${BLUE}To start Docker manually:${NC}"
 echo "  sudo service docker start"

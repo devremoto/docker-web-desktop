@@ -14,6 +14,7 @@ A modern, web-based Docker management interface built with Vue.js and Node.js th
 ## ✨ Features
 
 ### 🎨 **Modern Interface**
+
 - 📱 **Responsive Design**: Works on desktop, tablet, and mobile
 - 🎯 **Intuitive UI**: Clean, user-friendly interface
 - 🌈 **Bootstrap 5**: Modern styling and components
@@ -22,6 +23,7 @@ A modern, web-based Docker management interface built with Vue.js and Node.js th
 - 🚀 **Fast Performance**: Optimized for speed and efficiency
 
 ### 🐳 **Docker Management**
+
 - **Containers**: Start, stop, restart, remove, and view logs
 - **Images**: View, remove, and inspect Docker images  
 - **Volumes**: Manage Docker volumes with usage information
@@ -81,15 +83,48 @@ Before you begin, ensure you have the following installed:
 | 📦 **npm** | 8+ | Included with Node.js |
 | 🔧 **Git** | Latest | [git-scm.com](https://git-scm.com/) |
 
+### Windows + WSL2 Quick Install
+
+If you are on Windows and want Docker Engine running inside WSL (with Docker Compose), use the automated scripts:
+
+```bat
+:: Run as Administrator from project root
+public\install-wsl2.bat
+```
+
+What the script does:
+
+- Checks and installs Node.js LTS (via winget when available)
+- Installs/enables WSL2 and Ubuntu
+- Calls bash inside WSL to install Docker Engine and Docker Compose
+- Verifies both with `docker --version` and compose version checks
+
+You can also run the Linux-side script directly inside Ubuntu/WSL:
+
+```bash
+chmod +x public/install-docker-wsl2.sh
+./public/install-docker-wsl2.sh
+```
+
+Verify after installation inside WSL:
+
+```bash
+docker --version
+docker compose version
+docker run hello-world
+```
+
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/devremoto/docker-web-desktop.git
    cd docker-web-desktop
    ```
 
 2. **Install dependencies**
+
    ```bash
    # Backend dependencies
    cd backend && npm install
@@ -99,6 +134,7 @@ Before you begin, ensure you have the following installed:
    ```
 
 3. **Start the application**
+
    ```bash
    # Terminal 1: Start backend (from project root)
    cd backend && npm run dev
@@ -108,11 +144,20 @@ Before you begin, ensure you have the following installed:
    ```
 
 4. **Access the application**
-   - 🌐 **Frontend**: http://localhost:5173
-   - 🔧 **Backend API**: http://localhost:3000
-   - ❤️ **Health Check**: http://localhost:3000/api/health
+   - 🌐 **Frontend**: <http://localhost:5173>
+   - 🔧 **Backend API**: <http://localhost:3000>
+   - ❤️ **Health Check**: <http://localhost:3000/api/health>
 
 > 💡 **Tip**: Use the provided batch scripts on Windows: `start-backend.bat` and `start-frontend.bat`
+
+> 💡 **WSL2 Tip**: If your project uses `docker-compose.yml`, run compose commands from inside WSL for the WSL daemon:
+
+```bash
+docker compose up -d
+docker compose ps
+docker compose logs -f
+docker compose down
+```
 
 ## 📖 Documentation
 
@@ -166,12 +211,14 @@ Before you begin, ensure you have the following installed:
 ### 🛠️ Technology Stack
 
 #### Backend Technologies
+
 - ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white) **Node.js** - JavaScript runtime
 - ![Express](https://img.shields.io/badge/Express-000000?style=flat&logo=express&logoColor=white) **Express.js** - Web framework
 - ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) **Dockerode** - Docker API client
 - ![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=flat&logo=socket.io&logoColor=white) **Socket.IO** - Real-time communication
 
 #### Frontend Technologies
+
 - ![Vue.js](https://img.shields.io/badge/Vue.js-4FC08D?style=flat&logo=vue.js&logoColor=white) **Vue.js 3** - Progressive framework
 - ![Bootstrap](https://img.shields.io/badge/Bootstrap-7952B3?style=flat&logo=bootstrap&logoColor=white) **Bootstrap 5** - CSS framework
 - ![Pinia](https://img.shields.io/badge/Pinia-FFD859?style=flat&logo=pinia&logoColor=black) **Pinia** - State management
@@ -209,6 +256,7 @@ FRONTEND_URL=http://localhost:5173
 ### Available Scripts
 
 #### Backend Scripts
+
 ```bash
 npm start          # Start production server
 npm run dev        # Start development with nodemon
@@ -217,6 +265,7 @@ npm run lint       # Run ESLint
 ```
 
 #### Frontend Scripts
+
 ```bash
 npm run dev        # Start development server
 npm run build      # Build for production
@@ -230,6 +279,7 @@ npm run lint       # Run ESLint
 <summary><strong>🔧 Common Issues</strong></summary>
 
 #### Docker Connection Issues
+
 ```bash
 # Check Docker status
 docker version
@@ -243,6 +293,7 @@ sudo usermod -aG docker $USER
 ```
 
 #### Port Conflicts
+
 ```bash
 # Find process using port
 netstat -ano | findstr :3000    # Windows
@@ -254,6 +305,7 @@ kill -9 <PID>                   # Mac/Linux
 ```
 
 #### Node.js Version Issues
+
 ```bash
 # Check version
 node --version
@@ -273,18 +325,21 @@ npm install
 ### Production Build
 
 1. **Build the frontend**
+
    ```bash
    cd frontend
    npm run build
    ```
 
 2. **Configure backend for production**
+
    ```bash
    cd backend
    npm install --production
    ```
 
 3. **Start production server**
+
    ```bash
    npm start
    ```
