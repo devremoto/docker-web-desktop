@@ -1,8 +1,53 @@
 import { fileURLToPath, URL } from 'node:url'
+import { createReadStream, existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
+
+const installerFiles = [
+  'install-wsl2.bat',
+  'install-wsl2.ps1',
+  'install-docker-wsl2.sh'
+]
+
+function installersFromRootPublic() {
+  const rootPublicDir = fileURLToPath(new URL('../public', import.meta.url))
+
+  return {
+    name: 'installers-from-root-public',
+    configureServer(server: any) {
+      server.middlewares.use((req: any, res: any, next: any) => {
+        const requestPath = (req.url || '').split('?')[0].replace(/^\//, '')
+        if (!installerFiles.includes(requestPath)) {
+          next()
+          return
+        }
+
+        const filePath = path.join(rootPublicDir, requestPath)
+        if (!existsSync(filePath)) {
+          next()
+          return
+        }
+
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+        createReadStream(filePath).pipe(res)
+      })
+    },
+    generateBundle(this: any) {
+      for (const fileName of installerFiles) {
+        const filePath = path.join(rootPublicDir, fileName)
+        if (!existsSync(filePath)) continue
+        this.emitFile({
+          type: 'asset',
+          fileName,
+          source: readFileSync(filePath)
+        })
+      }
+    }
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -13,6 +58,7 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       vue(),
       vueDevTools(),
+      installersFromRootPublic(),
     ],
     resolve: {
       alias: {

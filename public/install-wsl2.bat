@@ -93,18 +93,28 @@ echo.
 
 echo Enabling Windows Subsystem for Linux...
 dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
-if %errorLevel% neq 0 (
+set "DISM_WSL_EXIT=%errorLevel%"
+if not "%DISM_WSL_EXIT%"=="0" if not "%DISM_WSL_EXIT%"=="3010" (
     echo ERROR: Failed to enable WSL feature
+    echo DISM exit code: %DISM_WSL_EXIT%
     pause
     exit /b 1
+)
+if "%DISM_WSL_EXIT%"=="3010" (
+    echo [INFO] WSL feature enabled, reboot required to finalize changes.
 )
 
 echo Enabling Virtual Machine Platform...
 dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
-if %errorLevel% neq 0 (
+set "DISM_VMP_EXIT=%errorLevel%"
+if not "%DISM_VMP_EXIT%"=="0" if not "%DISM_VMP_EXIT%"=="3010" (
     echo ERROR: Failed to enable Virtual Machine Platform
+    echo DISM exit code: %DISM_VMP_EXIT%
     pause
     exit /b 1
+)
+if "%DISM_VMP_EXIT%"=="3010" (
+    echo [INFO] Virtual Machine Platform enabled, reboot required to finalize changes.
 )
 
 echo [OK] Features enabled successfully
