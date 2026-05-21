@@ -232,33 +232,100 @@ if not exist "%SHIM_DIR%" mkdir "%SHIM_DIR%"
 
 (
     echo @echo off
+    echo setlocal
     echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
-    echo if "%%DISTRO%%"=="" set "DISTRO=!WSL_DISTRO!"
+    echo if not "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "%%DISTRO%%" ^>nul
+    echo   if errorlevel 1 set "DISTRO="
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "Ubuntu-22.04" ^>nul
+    echo   if not errorlevel 1 set "DISTRO=Ubuntu-22.04"
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "Ubuntu" ^>nul
+    echo   if not errorlevel 1 set "DISTRO=Ubuntu"
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   echo ERROR: No Ubuntu distro found. Install Ubuntu first with: wsl --install -d Ubuntu-22.04 ^>^&2
+    echo   exit /b 1
+    echo ^)
     echo wsl -d "%%DISTRO%%" -- docker %%*
 ) > "%SHIM_DIR%\docker.cmd"
 
 (
     echo @echo off
+    echo setlocal
     echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
-    echo if "%%DISTRO%%"=="" set "DISTRO=!WSL_DISTRO!"
+    echo if not "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "%%DISTRO%%" ^>nul
+    echo   if errorlevel 1 set "DISTRO="
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "Ubuntu-22.04" ^>nul
+    echo   if not errorlevel 1 set "DISTRO=Ubuntu-22.04"
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "Ubuntu" ^>nul
+    echo   if not errorlevel 1 set "DISTRO=Ubuntu"
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   echo ERROR: No Ubuntu distro found. Install Ubuntu first with: wsl --install -d Ubuntu-22.04 ^>^&2
+    echo   exit /b 1
+    echo ^)
     echo wsl -d "%%DISTRO%%" -- docker %%*
 ) > "%SYSTEM32_DIR%\docker.bat"
 
 (
     echo @echo off
+    echo setlocal
     echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
-    echo if "%%DISTRO%%"=="" set "DISTRO=!WSL_DISTRO!"
+    echo if not "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "%%DISTRO%%" ^>nul
+    echo   if errorlevel 1 set "DISTRO="
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "Ubuntu-22.04" ^>nul
+    echo   if not errorlevel 1 set "DISTRO=Ubuntu-22.04"
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "Ubuntu" ^>nul
+    echo   if not errorlevel 1 set "DISTRO=Ubuntu"
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   echo ERROR: No Ubuntu distro found. Install Ubuntu first with: wsl --install -d Ubuntu-22.04 ^>^&2
+    echo   exit /b 1
+    echo ^)
     echo wsl -d "%%DISTRO%%" -- sh -lc "if docker compose version ^> /dev/null 2^>^&1; then docker compose \"$@\"; elif command -v docker-compose ^> /dev/null 2^>^&1; then docker-compose \"$@\"; else echo Docker Compose not found inside WSL ^>^&2; exit 1; fi" -- %%*
 ) > "%SHIM_DIR%\docker-compose.cmd"
 
 (
     echo @echo off
+    echo setlocal
     echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
-    echo if "%%DISTRO%%"=="" set "DISTRO=!WSL_DISTRO!"
+    echo if not "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "%%DISTRO%%" ^>nul
+    echo   if errorlevel 1 set "DISTRO="
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "Ubuntu-22.04" ^>nul
+    echo   if not errorlevel 1 set "DISTRO=Ubuntu-22.04"
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   wsl -l -q ^| findstr /i /x "Ubuntu" ^>nul
+    echo   if not errorlevel 1 set "DISTRO=Ubuntu"
+    echo ^)
+    echo if "%%DISTRO%%"=="" ^(
+    echo   echo ERROR: No Ubuntu distro found. Install Ubuntu first with: wsl --install -d Ubuntu-22.04 ^>^&2
+    echo   exit /b 1
+    echo ^)
     echo wsl -d "%%DISTRO%%" -- sh -lc "if docker compose version ^> /dev/null 2^>^&1; then docker compose \"$@\"; elif command -v docker-compose ^> /dev/null 2^>^&1; then docker-compose \"$@\"; else echo Docker Compose not found inside WSL ^>^&2; exit 1; fi" -- %%*
 ) > "%SYSTEM32_DIR%\docker-compose.bat"
 
-setx /M DOCKER_WSL_DISTRO !WSL_DISTRO! >nul
+if defined WSL_DISTRO (
+    wsl -l -q | findstr /i /x "!WSL_DISTRO!" >nul
+    if !errorlevel! equ 0 setx /M DOCKER_WSL_DISTRO !WSL_DISTRO! >nul
+)
 powershell -NoProfile -Command "$dir='%SHIM_DIR%'; $p=[Environment]::GetEnvironmentVariable('Path','Machine'); if(-not (($p -split ';') -contains $dir)){ [Environment]::SetEnvironmentVariable('Path',($p.TrimEnd(';') + ';' + $dir),'Machine') }"
 set SHIMS_CREATED=1
 
