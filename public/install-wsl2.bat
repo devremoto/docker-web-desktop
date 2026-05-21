@@ -239,18 +239,13 @@ if not exist "%SHIM_DIR%" mkdir "%SHIM_DIR%"
     echo   if errorlevel 1 set "DISTRO="
     echo ^)
     echo if "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "Ubuntu-22.04" ^>nul
-    echo   if not errorlevel 1 set "DISTRO=Ubuntu-22.04"
+    echo   for /f "delims=" %%%%D in ('wsl -l -q') do ^(
+    echo     if /i not "%%%%D"=="docker-desktop" if /i not "%%%%D"=="docker-desktop-data" if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
+    echo   ^)
     echo ^)
     echo if "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "Ubuntu" ^>nul
-    echo   if not errorlevel 1 set "DISTRO=Ubuntu"
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   for /f "delims=" %%%%D in ('wsl -l -q ^| findstr /i "Ubuntu"') do if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   echo ERROR: No Ubuntu distro found. Install one with: wsl --install -d Ubuntu ^>^&2
+    echo   echo ERROR: No WSL distro found. Run: wsl --install -d Ubuntu ^>^&2
+    echo   echo If you just installed WSL features, reboot and launch Ubuntu once first. ^>^&2
     echo   exit /b 1
     echo ^)
     echo wsl -d "%%DISTRO%%" -- docker %%*
@@ -265,18 +260,13 @@ if not exist "%SHIM_DIR%" mkdir "%SHIM_DIR%"
     echo   if errorlevel 1 set "DISTRO="
     echo ^)
     echo if "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "Ubuntu-22.04" ^>nul
-    echo   if not errorlevel 1 set "DISTRO=Ubuntu-22.04"
+    echo   for /f "delims=" %%%%D in ('wsl -l -q') do ^(
+    echo     if /i not "%%%%D"=="docker-desktop" if /i not "%%%%D"=="docker-desktop-data" if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
+    echo   ^)
     echo ^)
     echo if "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "Ubuntu" ^>nul
-    echo   if not errorlevel 1 set "DISTRO=Ubuntu"
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   for /f "delims=" %%%%D in ('wsl -l -q ^| findstr /i "Ubuntu"') do if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   echo ERROR: No Ubuntu distro found. Install one with: wsl --install -d Ubuntu ^>^&2
+    echo   echo ERROR: No WSL distro found. Run: wsl --install -d Ubuntu ^>^&2
+    echo   echo If you just installed WSL features, reboot and launch Ubuntu once first. ^>^&2
     echo   exit /b 1
     echo ^)
     echo wsl -d "%%DISTRO%%" -- docker %%*
@@ -291,18 +281,13 @@ if not exist "%SHIM_DIR%" mkdir "%SHIM_DIR%"
     echo   if errorlevel 1 set "DISTRO="
     echo ^)
     echo if "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "Ubuntu-22.04" ^>nul
-    echo   if not errorlevel 1 set "DISTRO=Ubuntu-22.04"
+    echo   for /f "delims=" %%%%D in ('wsl -l -q') do ^(
+    echo     if /i not "%%%%D"=="docker-desktop" if /i not "%%%%D"=="docker-desktop-data" if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
+    echo   ^)
     echo ^)
     echo if "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "Ubuntu" ^>nul
-    echo   if not errorlevel 1 set "DISTRO=Ubuntu"
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   for /f "delims=" %%%%D in ('wsl -l -q ^| findstr /i "Ubuntu"') do if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   echo ERROR: No Ubuntu distro found. Install one with: wsl --install -d Ubuntu ^>^&2
+    echo   echo ERROR: No WSL distro found. Run: wsl --install -d Ubuntu ^>^&2
+    echo   echo If you just installed WSL features, reboot and launch Ubuntu once first. ^>^&2
     echo   exit /b 1
     echo ^)
     echo wsl -d "%%DISTRO%%" -- sh -lc "if docker compose version ^> /dev/null 2^>^&1; then docker compose \"$@\"; elif command -v docker-compose ^> /dev/null 2^>^&1; then docker-compose \"$@\"; else echo Docker Compose not found inside WSL ^>^&2; exit 1; fi" -- %%*
@@ -317,18 +302,13 @@ if not exist "%SHIM_DIR%" mkdir "%SHIM_DIR%"
     echo   if errorlevel 1 set "DISTRO="
     echo ^)
     echo if "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "Ubuntu-22.04" ^>nul
-    echo   if not errorlevel 1 set "DISTRO=Ubuntu-22.04"
+    echo   for /f "delims=" %%%%D in ('wsl -l -q') do ^(
+    echo     if /i not "%%%%D"=="docker-desktop" if /i not "%%%%D"=="docker-desktop-data" if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
+    echo   ^)
     echo ^)
     echo if "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "Ubuntu" ^>nul
-    echo   if not errorlevel 1 set "DISTRO=Ubuntu"
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   for /f "delims=" %%%%D in ('wsl -l -q ^| findstr /i "Ubuntu"') do if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   echo ERROR: No Ubuntu distro found. Install one with: wsl --install -d Ubuntu ^>^&2
+    echo   echo ERROR: No WSL distro found. Run: wsl --install -d Ubuntu ^>^&2
+    echo   echo If you just installed WSL features, reboot and launch Ubuntu once first. ^>^&2
     echo   exit /b 1
     echo ^)
     echo wsl -d "%%DISTRO%%" -- sh -lc "if docker compose version ^> /dev/null 2^>^&1; then docker compose \"$@\"; elif command -v docker-compose ^> /dev/null 2^>^&1; then docker-compose \"$@\"; else echo Docker Compose not found inside WSL ^>^&2; exit 1; fi" -- %%*
