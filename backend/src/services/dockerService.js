@@ -41,7 +41,7 @@ class DockerService {
     constructor(options = {}) {
 
         this.source = options.source || 'local';
-        this.wslDistro = options.wslDistro || process.env.WSL_DISTRO || 'Ubuntu';
+        this.wslDistro = options.wslDistro || process.env.DOCKER_WSL_DISTRO || process.env.WSL_DISTRO || '';
 
 
         // Allow custom Docker connection (for WSL2, etc)
@@ -74,7 +74,31 @@ class DockerService {
                 }
                 return stdout;
             }
-            const { stdout, stderr } = await execAsync(`wsl.exe -d ${this.wslDistro} -- docker ${command}`);
+
+            const runWithDefaultDistro = () => execAsync(`wsl.exe -- docker ${command}`);
+
+            const runWithExplicitDistro = () => {
+                const distro = this.wslDistro.replace(/"/g, '');
+                return execAsync(`wsl.exe -d "${distro}" -- docker ${command}`);
+            };
+
+            let result;
+            if (this.wslDistro) {
+                try {
+                    result = await runWithExplicitDistro();
+                } catch (explicitError) {
+                    // Fallback to default distro when configured distro does not exist.
+                    if (explicitError.message && explicitError.message.includes('WSL_E_DISTRO_NOT_FOUND')) {
+                        result = await runWithDefaultDistro();
+                    } else {
+                        throw explicitError;
+                    }
+                }
+            } else {
+                result = await runWithDefaultDistro();
+            }
+
+            const { stdout, stderr } = result;
             if (stderr && !stderr.includes('WARNING')) {
                 console.warn('WSL Docker command warning:', stderr);
             }
