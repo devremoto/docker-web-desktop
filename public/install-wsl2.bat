@@ -230,94 +230,35 @@ set SHIM_DIR=%ProgramData%\docker-wsl\bin
 set SYSTEM32_DIR=%windir%\System32
 if not exist "%SHIM_DIR%" mkdir "%SHIM_DIR%"
 
+REM Ensure chosen distro is default when available, so wrappers can use `wsl -e`
+if defined WSL_DISTRO (
+    wsl -l -q | findstr /i /x "!WSL_DISTRO!" >nul
+    if !errorlevel! equ 0 (
+        wsl --set-default !WSL_DISTRO! >nul 2>&1
+        setx /M DOCKER_WSL_DISTRO !WSL_DISTRO! >nul
+    )
+)
+
 (
     echo @echo off
-    echo setlocal
-    echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
-    echo if not "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "%%DISTRO%%" ^>nul
-    echo   if errorlevel 1 set "DISTRO="
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   for /f "delims=" %%%%D in ('wsl -l -q') do ^(
-    echo     if /i not "%%%%D"=="docker-desktop" if /i not "%%%%D"=="docker-desktop-data" if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
-    echo   ^)
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   echo ERROR: No WSL distro found. Run: wsl --install -d Ubuntu ^>^&2
-    echo   echo If you just installed WSL features, reboot and launch Ubuntu once first. ^>^&2
-    echo   exit /b 1
-    echo ^)
-    echo wsl -d "%%DISTRO%%" -- docker %%*
+    echo wsl -e docker %%*
 ) > "%SHIM_DIR%\docker.cmd"
 
 (
     echo @echo off
-    echo setlocal
-    echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
-    echo if not "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "%%DISTRO%%" ^>nul
-    echo   if errorlevel 1 set "DISTRO="
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   for /f "delims=" %%%%D in ('wsl -l -q') do ^(
-    echo     if /i not "%%%%D"=="docker-desktop" if /i not "%%%%D"=="docker-desktop-data" if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
-    echo   ^)
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   echo ERROR: No WSL distro found. Run: wsl --install -d Ubuntu ^>^&2
-    echo   echo If you just installed WSL features, reboot and launch Ubuntu once first. ^>^&2
-    echo   exit /b 1
-    echo ^)
-    echo wsl -d "%%DISTRO%%" -- docker %%*
+    echo wsl -e docker %%*
 ) > "%SYSTEM32_DIR%\docker.bat"
 
 (
     echo @echo off
-    echo setlocal
-    echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
-    echo if not "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "%%DISTRO%%" ^>nul
-    echo   if errorlevel 1 set "DISTRO="
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   for /f "delims=" %%%%D in ('wsl -l -q') do ^(
-    echo     if /i not "%%%%D"=="docker-desktop" if /i not "%%%%D"=="docker-desktop-data" if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
-    echo   ^)
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   echo ERROR: No WSL distro found. Run: wsl --install -d Ubuntu ^>^&2
-    echo   echo If you just installed WSL features, reboot and launch Ubuntu once first. ^>^&2
-    echo   exit /b 1
-    echo ^)
-    echo wsl -d "%%DISTRO%%" -- sh -lc "if docker compose version ^> /dev/null 2^>^&1; then docker compose \"$@\"; elif command -v docker-compose ^> /dev/null 2^>^&1; then docker-compose \"$@\"; else echo Docker Compose not found inside WSL ^>^&2; exit 1; fi" -- %%*
+    echo wsl -e docker compose %%*
 ) > "%SHIM_DIR%\docker-compose.cmd"
 
 (
     echo @echo off
-    echo setlocal
-    echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
-    echo if not "%%DISTRO%%"=="" ^(
-    echo   wsl -l -q ^| findstr /i /x "%%DISTRO%%" ^>nul
-    echo   if errorlevel 1 set "DISTRO="
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   for /f "delims=" %%%%D in ('wsl -l -q') do ^(
-    echo     if /i not "%%%%D"=="docker-desktop" if /i not "%%%%D"=="docker-desktop-data" if "%%DISTRO%%"=="" set "DISTRO=%%%%D"
-    echo   ^)
-    echo ^)
-    echo if "%%DISTRO%%"=="" ^(
-    echo   echo ERROR: No WSL distro found. Run: wsl --install -d Ubuntu ^>^&2
-    echo   echo If you just installed WSL features, reboot and launch Ubuntu once first. ^>^&2
-    echo   exit /b 1
-    echo ^)
-    echo wsl -d "%%DISTRO%%" -- sh -lc "if docker compose version ^> /dev/null 2^>^&1; then docker compose \"$@\"; elif command -v docker-compose ^> /dev/null 2^>^&1; then docker-compose \"$@\"; else echo Docker Compose not found inside WSL ^>^&2; exit 1; fi" -- %%*
+    echo wsl -e docker compose %%*
 ) > "%SYSTEM32_DIR%\docker-compose.bat"
 
-if defined WSL_DISTRO (
-    wsl -l -q | findstr /i /x "!WSL_DISTRO!" >nul
-    if !errorlevel! equ 0 setx /M DOCKER_WSL_DISTRO !WSL_DISTRO! >nul
-)
 powershell -NoProfile -Command "$dir='%SHIM_DIR%'; $p=[Environment]::GetEnvironmentVariable('Path','Machine'); if(-not (($p -split ';') -contains $dir)){ [Environment]::SetEnvironmentVariable('Path',($p.TrimEnd(';') + ';' + $dir),'Machine') }"
 set SHIMS_CREATED=1
 
