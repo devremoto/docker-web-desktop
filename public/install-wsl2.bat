@@ -26,6 +26,7 @@ echo ======================================
 echo.
 
 set WSL_DISTRO=Ubuntu-22.04
+set SHIMS_CREATED=0
 
 REM Check if Node.js is installed and install if missing
 echo [1/10] Checking Node.js installation...
@@ -194,7 +195,7 @@ if %errorLevel% neq 0 (
     ) else (
         echo WARNING: Ubuntu distro not ready yet.
         echo Run Ubuntu once after reboot, then run this script again to finish Docker setup.
-        goto :POST_DOCKER
+        goto :CREATE_SHIMS
     )
 )
 
@@ -203,7 +204,7 @@ wsl -d !WSL_DISTRO! -u root -- bash -lc "set -e; export DEBIAN_FRONTEND=noninter
 if %errorLevel% neq 0 (
     echo WARNING: Could not install Docker inside WSL in this run.
     echo This usually means reboot and first Ubuntu launch are still required.
-    goto :POST_DOCKER
+    goto :CREATE_SHIMS
 )
 
 echo [OK] Docker packages installed inside WSL
@@ -222,6 +223,8 @@ if %errorLevel% equ 0 (
 )
 
 REM Create Windows docker shims for standalone WSL Docker usage
+:CREATE_SHIMS
+if "%SHIMS_CREATED%"=="1" goto :POST_DOCKER
 echo [10/10] Creating Windows docker shims for WSL Docker...
 set SHIM_DIR=%ProgramData%\docker-wsl\bin
 set SYSTEM32_DIR=%windir%\System32
@@ -257,6 +260,7 @@ if not exist "%SHIM_DIR%" mkdir "%SHIM_DIR%"
 
 setx /M DOCKER_WSL_DISTRO !WSL_DISTRO! >nul
 powershell -NoProfile -Command "$dir='%SHIM_DIR%'; $p=[Environment]::GetEnvironmentVariable('Path','Machine'); if(-not (($p -split ';') -contains $dir)){ [Environment]::SetEnvironmentVariable('Path',($p.TrimEnd(';') + ';' + $dir),'Machine') }"
+set SHIMS_CREATED=1
 
 echo [OK] Shim commands created in: %SYSTEM32_DIR% and %SHIM_DIR%
 echo [OK] DOCKER_WSL_DISTRO set to: !WSL_DISTRO!
@@ -285,6 +289,11 @@ echo    docker compose logs -f
 echo 6. From a new Windows terminal, you can run directly:
 echo    docker --version
 echo    docker-compose version
+if "%SHIMS_CREATED%"=="1" (
+    echo 7. Windows command mapping status: CREATED before restart prompt.
+) else (
+    echo 7. Windows command mapping status: NOT CREATED.
+)
 echo.
 
 REM Ask for restart
