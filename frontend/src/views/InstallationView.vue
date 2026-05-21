@@ -193,6 +193,7 @@ cd frontend && npm run dev</code></pre>
                 <ul class="mb-0">
                   <li><strong>Frontend:</strong> <a href="http://localhost:5173" target="_blank">http://localhost:5173</a></li>
                   <li><strong>Backend API:</strong> <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+                  <li><strong>Swagger UI:</strong> <a href="http://localhost:3000/swagger" target="_blank">http://localhost:3000/swagger</a> (also available at <a href="http://localhost:3000/api-docs" target="_blank">/api-docs</a>)</li>
                   <li><strong>Health Check:</strong> <a href="http://localhost:3000/api/health" target="_blank">http://localhost:3000/api/health</a></li>
                 </ul>
               </div>

@@ -23,6 +23,7 @@ const io = socketIo(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV;
 
 // Middleware
 app.use(cors({
@@ -38,7 +39,7 @@ app.use(cors({
 app.use(express.json());
 
 // Swagger UI (development only)
-if (process.env.NODE_ENV === 'development') {
+if (NODE_ENV === 'development') {
     try {
         const swaggerUi = require('swagger-ui-express');
         const swaggerDocument = require('./swagger_output.json');
@@ -50,7 +51,15 @@ if (process.env.NODE_ENV === 'development') {
                 operationsSorter: 'alpha',
             }
         }));
-        console.log('Swagger UI available at /api-docs (development, swagger-autogen)');
+        app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+            explorer: true,
+            swaggerOptions: {
+                docExpansion: 'none',
+                tagsSorter: 'alpha',
+                operationsSorter: 'alpha',
+            }
+        }));
+        console.log('Swagger UI available at /api-docs and /swagger (development, swagger-autogen)');
     } catch (err) {
         console.warn('Swagger UI not available. Install swagger-ui-express and swagger-autogen to enable it.');
     }
@@ -84,11 +93,11 @@ io.on('connection', (socket) => {
 app.set('io', io);
 
 server.listen(PORT, () => {
-    console.log('Environment:', process.env.NODE_ENV || 'development');
+    console.log('Environment:', NODE_ENV);
     console.log(`Server is running on port ${PORT}`);
     //put the app link and swagger link here
     console.log(`API Endpoint: http://localhost:${PORT}/api`);
-    console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
+    console.log(`Swagger UI: http://localhost:${PORT}/swagger (alias: /api-docs)`);
     console.log('server is running at: http://localhost:' + PORT);
 });
 

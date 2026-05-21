@@ -2,6 +2,17 @@
 echo Starting Docker Web Desktop Application...
 echo.
 
+REM Environment variables used by backend/frontend startup
+set NODE_ENV=development
+set PORT=3000
+set VITE_API_BASE_URL=http://localhost:3000
+
+echo Environment:
+echo NODE_ENV=%NODE_ENV%
+echo PORT=%PORT%
+echo VITE_API_BASE_URL=%VITE_API_BASE_URL%
+echo.
+
 echo Starting Backend Server...
 start "Backend Server" cmd /c "cd backend && npm install && npm start"
 
