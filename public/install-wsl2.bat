@@ -224,6 +224,7 @@ if %errorLevel% equ 0 (
 REM Create Windows docker shims for standalone WSL Docker usage
 echo [10/10] Creating Windows docker shims for WSL Docker...
 set SHIM_DIR=%ProgramData%\docker-wsl\bin
+set SYSTEM32_DIR=%windir%\System32
 if not exist "%SHIM_DIR%" mkdir "%SHIM_DIR%"
 
 (
@@ -237,13 +238,27 @@ if not exist "%SHIM_DIR%" mkdir "%SHIM_DIR%"
     echo @echo off
     echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
     echo if "%%DISTRO%%"=="" set "DISTRO=!WSL_DISTRO!"
+    echo wsl -d "%%DISTRO%%" -- docker %%*
+) > "%SYSTEM32_DIR%\docker.bat"
+
+(
+    echo @echo off
+    echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
+    echo if "%%DISTRO%%"=="" set "DISTRO=!WSL_DISTRO!"
     echo wsl -d "%%DISTRO%%" -- sh -lc "if docker compose version ^> /dev/null 2^>^&1; then docker compose \"$@\"; elif command -v docker-compose ^> /dev/null 2^>^&1; then docker-compose \"$@\"; else echo Docker Compose not found inside WSL ^>^&2; exit 1; fi" -- %%*
 ) > "%SHIM_DIR%\docker-compose.cmd"
+
+(
+    echo @echo off
+    echo set "DISTRO=%%DOCKER_WSL_DISTRO%%"
+    echo if "%%DISTRO%%"=="" set "DISTRO=!WSL_DISTRO!"
+    echo wsl -d "%%DISTRO%%" -- sh -lc "if docker compose version ^> /dev/null 2^>^&1; then docker compose \"$@\"; elif command -v docker-compose ^> /dev/null 2^>^&1; then docker-compose \"$@\"; else echo Docker Compose not found inside WSL ^>^&2; exit 1; fi" -- %%*
+) > "%SYSTEM32_DIR%\docker-compose.bat"
 
 setx /M DOCKER_WSL_DISTRO !WSL_DISTRO! >nul
 powershell -NoProfile -Command "$dir='%SHIM_DIR%'; $p=[Environment]::GetEnvironmentVariable('Path','Machine'); if(-not (($p -split ';') -contains $dir)){ [Environment]::SetEnvironmentVariable('Path',($p.TrimEnd(';') + ';' + $dir),'Machine') }"
 
-echo [OK] Shim commands created in: %SHIM_DIR%
+echo [OK] Shim commands created in: %SYSTEM32_DIR% and %SHIM_DIR%
 echo [OK] DOCKER_WSL_DISTRO set to: !WSL_DISTRO!
 echo NOTE: Open a new terminal to use docker/docker-compose directly from Windows.
 
