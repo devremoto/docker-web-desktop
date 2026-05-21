@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@types/node": "^25.9.1",
     "nodemon": "^3.1.11",
     "swagger-autogen": "^2.23.7"
   }

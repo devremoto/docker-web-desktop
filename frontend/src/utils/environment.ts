@@ -1,4 +1,20 @@
 // Environment configuration utility
+interface ImportMetaEnv {
+    readonly VITE_API_BASE_URL?: string
+    readonly VITE_APP_TITLE?: string
+    readonly VITE_APP_VERSION?: string
+    readonly VITE_DEBUG?: string
+    readonly VITE_SOCKET_URL?: string
+    readonly VITE_LOG_LEVEL?: 'debug' | 'info' | 'warn' | 'error'
+    readonly DEV?: boolean
+    readonly PROD?: boolean
+    readonly MODE?: string
+}
+
+interface ImportMeta {
+    readonly env: ImportMetaEnv
+}
+
 interface EnvironmentConfig {
     apiBaseUrl: string
     appTitle: string
@@ -14,11 +30,11 @@ class Environment {
     static get config(): EnvironmentConfig {
         if (!this._config) {
             this._config = {
-                apiBaseUrl: import.meta.env.VITE_API_BASE_URL || process.env.VITE_API_BASE_URL || 'http://localhost:3334',
+                apiBaseUrl: import.meta.env.VITE_API_BASE_URL || (globalThis as any)?.process?.env?.VITE_API_BASE_URL || 'http://localhost:3000',
                 appTitle: import.meta.env.VITE_APP_TITLE || 'Docker Web Desktop',
                 appVersion: import.meta.env.VITE_APP_VERSION || '1.0.0',
                 debug: import.meta.env.VITE_DEBUG === 'true',
-                socketUrl: import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || process.env.VITE_API_BASE_URL || 'http://localhost:3334',
+                socketUrl: import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || (globalThis as any)?.process?.env?.VITE_API_BASE_URL || 'http://localhost:3000',
                 logLevel: (import.meta.env.VITE_LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error') || 'info'
             }
         }
