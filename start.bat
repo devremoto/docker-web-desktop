@@ -5,7 +5,7 @@ echo.
 REM Environment variables used by backend/frontend startup
 set NODE_ENV=development
 set PORT=3000
-set VITE_API_BASE_URL=http://localhost:3000
+set VITE_API_BASE_URL=http://localhost:%PORT%
 
 echo Environment:
 echo NODE_ENV=%NODE_ENV%
