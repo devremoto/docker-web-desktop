@@ -805,13 +805,15 @@ const getProtocolOptions = (port) => {
     flex-shrink: 0;
 }
 
-.port-links {
-    flex-shrink: 0;
+.port-links,
+.btn-group {
+    overflow: visible;
 }
 
 .btn-group {
     position: relative;
 }
+
 
 .dropdown-menu {
     min-width: 250px;
@@ -820,7 +822,7 @@ const getProtocolOptions = (port) => {
     position: absolute;
     top: 100%;
     left: 0;
-    z-index: 1000;
+    z-index: 99999 !important;
     display: none;
     min-width: 10rem;
     padding: 0.5rem 0;
@@ -834,6 +836,11 @@ const getProtocolOptions = (port) => {
     border: 1px solid rgba(0, 0, 0, 0.15);
     border-radius: 0.375rem;
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+}
+
+/* Ensure parent containers do not clip the dropdown */
+.table-responsive, .card-body, .card {
+    overflow: visible !important;
 }
 
 .dropdown-menu.show {

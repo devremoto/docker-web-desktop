@@ -177,6 +177,11 @@ const toggleGroup = (groupKey) => {
     table-layout: fixed;
     width: 100%;
     min-width: 800px;
+    overflow: visible;
+}
+
+.table-responsive {
+    overflow: visible !important;
 }
 
 .table-fixed th,
