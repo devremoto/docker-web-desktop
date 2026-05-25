@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "open-swagger-ui",
+            "type": "shell",
+            "command": "start http://localhost:3000/api/docs",
+            "problemMatcher": []
+        }
+    ]
+}
