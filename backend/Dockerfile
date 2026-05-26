@@ -31,7 +31,7 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose the port the app runs on
-EXPOSE 3000
+EXPOSE ${PORT:-3000}
 
 # Define environment variable
 ENV NODE_ENV=production

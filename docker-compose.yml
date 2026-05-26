@@ -21,12 +21,12 @@ services:
     container_name: docker-web-desktop-backend
     restart: unless-stopped
     ports:
-      - "3333:3000"
+      - "3333:3333"
     depends_on:
       - dind-daemon
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3333
       - DOCKER_HOST=tcp://dind-daemon:2375
     volumes:
       # Mount Docker socket to allow backend to communicate with Docker daemon
@@ -62,8 +62,8 @@ services:
         condition: service_healthy
     environment:
       - NODE_ENV=docker
-      - VITE_API_BASE_URL=http://backend:3000
-      - API_BASE_URL=http://backend:3000
+      - VITE_API_BASE_URL=http://backend:3333
+      - API_BASE_URL=http://backend:3333
     networks:
       - app-network
     links:
