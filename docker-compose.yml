@@ -1,7 +1,7 @@
 services:
   # This is the Docker Daemon (the 'host' of your inner containers)
   dind-daemon:
-    image: docker:24-dind 
+    image: docker:24-dind
     container_name: dind-daemon
     privileged: true # DinD requires privileged mode to function correctly
     volumes:
@@ -10,9 +10,9 @@ services:
     environment:
       DOCKER_TLS_CERTDIR: "" # Disable TLS for simpler local setup (use TLS in prod)
       DOCKER_HOST: "tcp://0.0.0.0:2375"
-    networks :
+    networks:
       - app-network
-      
+
   # Backend Service
   backend:
     build:
@@ -21,12 +21,12 @@ services:
     container_name: docker-web-desktop-backend
     restart: unless-stopped
     ports:
-      - "3333:3000"
+      - "3333:3333"
     depends_on:
       - dind-daemon
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3333
       - DOCKER_HOST=tcp://dind-daemon:2375
     volumes:
       # Mount Docker socket to allow backend to communicate with Docker daemon
@@ -41,7 +41,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:3000/api/health",
+          "http://localhost:3333/api/health",
         ]
       interval: 30s
       timeout: 10s
@@ -53,17 +53,19 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://backend:3333
     container_name: docker-web-desktop-frontend
     restart: unless-stopped
     ports:
-      - "5174:80"    
+      - "5174:80"
     depends_on:
       backend:
         condition: service_healthy
     environment:
       - NODE_ENV=docker
-      - VITE_API_BASE_URL=http://backend:3000
-      - API_BASE_URL=http://backend:3000
+      - VITE_API_BASE_URL=http://backend:3333
+      - API_BASE_URL=http://backend:3333
     networks:
       - app-network
     links:
