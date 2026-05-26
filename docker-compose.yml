@@ -1,7 +1,7 @@
 services:
   # This is the Docker Daemon (the 'host' of your inner containers)
   dind-daemon:
-    image: docker:24-dind 
+    image: docker:24-dind
     container_name: dind-daemon
     privileged: true # DinD requires privileged mode to function correctly
     volumes:
@@ -10,9 +10,9 @@ services:
     environment:
       DOCKER_TLS_CERTDIR: "" # Disable TLS for simpler local setup (use TLS in prod)
       DOCKER_HOST: "tcp://0.0.0.0:2375"
-    networks :
+    networks:
       - app-network
-      
+
   # Backend Service
   backend:
     build:
@@ -20,14 +20,13 @@ services:
       dockerfile: Dockerfile
     container_name: docker-web-desktop-backend
     restart: unless-stopped
+    user: "0:0"
     ports:
       - "3333:3333"
-    depends_on:
-      - dind-daemon
     environment:
       - NODE_ENV=production
       - PORT=3333
-      - DOCKER_HOST=tcp://dind-daemon:2375
+      - WSL_HOST_BRIDGE_BASE_URL=http://host.docker.internal:3334
     volumes:
       # Mount Docker socket to allow backend to communicate with Docker daemon
       - /var/run/docker.sock:/var/run/docker.sock
@@ -41,7 +40,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:3000/api/health",
+          "http://localhost:3333/api/health",
         ]
       interval: 30s
       timeout: 10s
@@ -53,10 +52,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://backend:3333
     container_name: docker-web-desktop-frontend
     restart: unless-stopped
     ports:
-      - "5174:80"    
+      - "5174:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -76,7 +77,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:5174",
+          "http://127.0.0.1",
         ]
       interval: 30s
       timeout: 10s

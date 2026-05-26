@@ -43,6 +43,7 @@ goto help
 
 :start
 echo 🚀 Starting Docker Web Desktop in production mode...
+call :ensure_bridge
 docker-compose up -d --build
 if errorlevel 0 (
     echo ✅ Application started successfully!
@@ -53,6 +54,7 @@ goto end
 
 :dev
 echo 🚀 Starting Docker Web Desktop in development mode...
+call :ensure_bridge
 docker-compose -f docker-compose.dev.yml up --build
 goto end
 
@@ -65,12 +67,44 @@ goto end
 
 :restart
 echo 🔄 Restarting Docker Web Desktop...
+call :ensure_bridge
 docker-compose down
 docker-compose up -d --build
 if errorlevel 0 (
     echo ✅ Application restarted successfully!
 )
 goto end
+
+:ensure_bridge
+set "BRIDGE_URL=http://127.0.0.1:3334/health"
+set "BRIDGE_SCRIPT=%~dp0scripts\start-wsl-host-bridge.ps1"
+
+powershell -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing '%BRIDGE_URL%' -TimeoutSec 2; if ($r.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
+if not errorlevel 1 (
+    echo ✅ WSL host bridge already running.
+    goto :eof
+)
+
+echo 🔌 Starting WSL host bridge...
+start "WSL Host Bridge" powershell -NoProfile -ExecutionPolicy Bypass -File "%BRIDGE_SCRIPT%"
+
+set "BRIDGE_READY=0"
+for /L %%i in (1,1,10) do (
+    powershell -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing '%BRIDGE_URL%' -TimeoutSec 2; if ($r.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
+    if not errorlevel 1 (
+        set "BRIDGE_READY=1"
+        goto bridge_ready
+    )
+    timeout /t 1 /nobreak >nul
+)
+
+:bridge_ready
+if "%BRIDGE_READY%"=="1" (
+    echo ✅ WSL host bridge is ready.
+) else (
+    echo ⚠️ WSL host bridge did not respond in time. WSL2 operations may fail.
+)
+goto :eof
 
 :logs
 echo 📋 Showing application logs...

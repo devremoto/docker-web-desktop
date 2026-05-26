@@ -15,6 +15,10 @@ RUN npm ci
 # Copy the rest of the application code
 COPY . .
 
+# Allow compose to inject API base URL at build-time for Vite replacement.
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # Build the application for production
 RUN npm run build:docker
 

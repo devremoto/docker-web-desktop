@@ -15,9 +15,19 @@ const wslRoutes = require('./routes/wsl');
 
 const app = express();
 const server = http.createServer(app);
+const corsOrigins = [
+    "http://localhost:8080",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175"
+]
 const io = socketIo(server, {
     cors: {
-        origin: ["http://localhost:8080", "http://localhost:5173", "http://localhost:5174"],
+        origin: corsOrigins,
         methods: ["GET", "POST"]
     }
 });
@@ -27,12 +37,7 @@ const NODE_ENV = process.env.NODE_ENV;
 
 // Middleware
 app.use(cors({
-    origin: [
-        "http://localhost:8080",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175"
-    ],
+    origin: corsOrigins,
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));

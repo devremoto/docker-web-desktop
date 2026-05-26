@@ -1,9 +1,18 @@
 const Docker = require('dockerode');
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const axios = require('axios');
 const execAsync = promisify(exec);
 
 const ENV_VAR_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const EXCLUDED_WSL_DISTROS = new Set(['docker-desktop', 'docker-desktop-data']);
+
+function filterPublicWslDistros(distros = []) {
+    return distros
+        .map(name => (typeof name === 'string' ? name.trim() : ''))
+        .filter(Boolean)
+        .filter(name => !EXCLUDED_WSL_DISTROS.has(name.toLowerCase()));
+}
 
 function shellQuote(value) {
     return `'${String(value).replace(/'/g, `'"'"'`)}'`;
@@ -43,6 +52,7 @@ class DockerService {
         this.source = options.source || 'local';
         this.wslDistro = options.wslDistro || process.env.DOCKER_WSL_DISTRO || process.env.WSL_DISTRO || '';
         this.isWsl2 = options.source === 'wsl2';
+        this.wslHostBridgeBaseUrl = options.wslHostBridgeBaseUrl || process.env.WSL_HOST_BRIDGE_BASE_URL || '';
 
         // Allow custom Docker connection (for WSL2, etc)
         if (this.isWsl2) {
@@ -65,6 +75,17 @@ class DockerService {
 
     async executeWSLDockerCommand(command) {
         try {
+            const bridgeOutput = await this.executeWSLDockerCommandViaHostBridge(command);
+            if (bridgeOutput !== null) {
+                return bridgeOutput;
+            }
+
+            const canUseWsl = await this.commandExists('wsl');
+
+            if (!canUseWsl) {
+                throw new Error('WSL CLI is not available in this backend runtime. Start scripts/start-wsl-host-bridge.ps1 on the host to enable WSL operations from Dockerized backend.');
+            }
+
             //check if wslDistro is docker-desktop or docker-desktop-data and call docker directly
             if (this.wslDistro === 'docker-desktop' || this.wslDistro === 'docker-desktop-data') {
                 const { stdout, stderr } = await execAsync(`docker ${command}`);
@@ -112,6 +133,39 @@ class DockerService {
                 throw new Error('Docker is not installed in WSL2 Ubuntu. Please install Docker inside WSL2 or use Local Docker.');
             }
             throw new Error(`WSL Docker command failed: ${error.message}`);
+        }
+    }
+
+    async executeWSLDockerCommandViaHostBridge(command) {
+        if (!this.wslHostBridgeBaseUrl) {
+            return null;
+        }
+
+        const response = await axios.post(`${this.wslHostBridgeBaseUrl}/wsl/docker-exec`, {
+            command,
+            distro: this.wslDistro || undefined
+        }, {
+            timeout: 30000
+        });
+
+        const payload = response.data || {};
+        if (!payload.success) {
+            throw new Error(payload.stderr || payload.stdout || payload.error || 'Host WSL bridge command failed');
+        }
+
+        return payload.stdout || '';
+    }
+
+    async commandExists(commandName) {
+        const lookupCommand = process.platform === 'win32'
+            ? `where ${commandName}`
+            : `command -v ${commandName}`;
+
+        try {
+            await execAsync(lookupCommand);
+            return true;
+        } catch (_) {
+            return false;
         }
     }
 
@@ -1125,14 +1179,57 @@ class DockerService {
         const { exec } = require('child_process');
         const { promisify } = require('util');
         const execAsync = promisify(exec);
+
+        const hostBridgeBaseUrl = process.env.WSL_HOST_BRIDGE_BASE_URL;
+        const hostBridgeUrl = process.env.WSL_HOST_BRIDGE_URL || (hostBridgeBaseUrl ? `${hostBridgeBaseUrl}/wsl/running` : '');
+
+        const getHostBridgeDistros = async () => {
+            if (!hostBridgeUrl) {
+                return null;
+            }
+
+            try {
+                const response = await axios.get(hostBridgeUrl, { timeout: 3000 });
+                const payload = response.data;
+
+                if (Array.isArray(payload)) {
+                    return filterPublicWslDistros(payload);
+                }
+
+                if (payload && typeof payload === 'object' && Array.isArray(payload.running)) {
+                    return filterPublicWslDistros(payload.running);
+                }
+
+                return [];
+            } catch (bridgeError) {
+                console.warn('WSL host bridge is unavailable:', bridgeError.message);
+                return null;
+            }
+        };
+
+        const bridgeDistros = await getHostBridgeDistros();
+        if (bridgeDistros !== null) {
+            return bridgeDistros;
+        }
+
         try {
+            // In Linux containers, WSL CLI usually does not exist; treat as no distros available.
+            try {
+                await execAsync(process.platform === 'win32' ? 'where wsl.exe' : 'command -v wsl || command -v wsl.exe');
+            } catch (_) {
+                return [];
+            }
+
             // wsl.exe -l -q outputs UTF-16LE (UCS-2) encoded text by default
             const { stdout } = await execAsync('wsl.exe -l -q', { encoding: 'buffer' });
             // Decode buffer as utf16le
             const decoded = stdout.toString('utf16le');
             // Split by newlines, trim, and filter out empty lines
-            return decoded.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+            return filterPublicWslDistros(decoded.split(/\r?\n/).map(line => line.trim()).filter(Boolean));
         } catch (error) {
+            if (error.message && (error.message.includes('not found') || error.message.includes('is not recognized'))) {
+                return [];
+            }
             throw new Error('Failed to list WSL distros: ' + error.message);
         }
     }

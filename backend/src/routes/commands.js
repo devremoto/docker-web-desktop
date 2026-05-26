@@ -1,6 +1,7 @@
 const express = require('express');
 const { exec } = require('child_process');
 const https = require('https');
+const { DockerService } = require('../services/dockerService');
 const router = express.Router();
 
 function sanitize(command) {
@@ -40,12 +41,33 @@ router.post('/execute', async (req, res) => {
         // Basic security: only allow docker and docker-compose commands
         const sanitizedCommand = sanitize(command);
 
-        // Wrap command with wsl.exe if source is wsl2
-        let finalCommand = sanitizedCommand;
         if (source === 'wsl2') {
             const distro = wslDistro || process.env.WSL_DISTRO || 'Ubuntu';
-            finalCommand = `wsl.exe -d ${distro} -- ${sanitizedCommand}`;
+            const serviceInstance = new DockerService({ source: 'wsl2', wslDistro: distro });
+            const dockerSubcommand = sanitizedCommand.replace(/^docker\s+/, '');
+
+            try {
+                const output = await serviceInstance.executeWSLDockerCommand(dockerSubcommand);
+                return res.json({
+                    success: true,
+                    command: sanitizedCommand,
+                    output: output || 'Command executed successfully',
+                    source: source,
+                    timestamp: new Date().toISOString()
+                });
+            } catch (error) {
+                return res.json({
+                    success: false,
+                    command: sanitizedCommand,
+                    output: error.message,
+                    source: source,
+                    timestamp: new Date().toISOString()
+                });
+            }
         }
+
+        // Local execution path
+        const finalCommand = sanitizedCommand;
 
         console.log(`Executing command (${source}): ${finalCommand}`);
 
@@ -94,16 +116,33 @@ router.post('/openconsole', async (req, res) => {
         const sanitizedCommand = sanitize(command);
         console.log(`Opening console for command: ${process.platform} - ${sanitizedCommand} (${source})`);
 
-        let cmd;
         if (source === 'wsl2') {
-            // Open WSL2 console with the command
             const distro = wslDistro || process.env.WSL_DISTRO || 'Ubuntu';
-            cmd = `start wsl.exe -d ${distro} -- bash -c "${sanitizedCommand}; read -p 'Press Enter to exit...'"`;
-            console.log(`WSL2 command: ${cmd}`);
-        } else {
-            // Open Windows console
-            cmd = process.platform === 'win32' ? `start cmd.exe /k ${sanitizedCommand}` : `sh -c "${sanitizedCommand}"`;
+            const serviceInstance = new DockerService({ source: 'wsl2', wslDistro: distro });
+            const dockerSubcommand = sanitizedCommand.replace(/^docker\s+/, '');
+
+            try {
+                const output = await serviceInstance.executeWSLDockerCommand(dockerSubcommand);
+                return res.json({
+                    success: true,
+                    message: `Executed on WSL2: ${sanitizedCommand}`,
+                    output: output || 'Command executed successfully',
+                    source: source,
+                    timestamp: new Date().toISOString()
+                });
+            } catch (error) {
+                return res.json({
+                    success: false,
+                    message: `Failed executing on WSL2: ${sanitizedCommand}`,
+                    output: error.message,
+                    source: source,
+                    timestamp: new Date().toISOString()
+                });
+            }
         }
+
+        // Open local console
+        const cmd = process.platform === 'win32' ? `start cmd.exe /k ${sanitizedCommand}` : `sh -c "${sanitizedCommand}"`;
 
         const child = exec(cmd, {
             detached: true,
@@ -132,11 +171,29 @@ router.get('/info', async (req, res) => {
     try {
         const source = req.query.source || 'local';
         const distro = req.query.wslDistro || process.env.WSL_DISTRO || 'Ubuntu';
-        let infoCommand = 'docker info --format json';
 
         if (source === 'wsl2') {
-            infoCommand = `wsl.exe -d ${distro} -- ${infoCommand}`;
+            const serviceInstance = new DockerService({ source: 'wsl2', wslDistro: distro });
+
+            try {
+                const stdout = await serviceInstance.executeWSLDockerCommand('info --format json');
+                const info = JSON.parse(stdout);
+                return res.json({
+                    success: true,
+                    info,
+                    source,
+                    timestamp: new Date().toISOString()
+                });
+            } catch (error) {
+                return res.status(500).json({
+                    error: 'Failed to get Docker info',
+                    details: error.message,
+                    source
+                });
+            }
         }
+
+        const infoCommand = 'docker info --format json';
 
         exec(infoCommand, { timeout: 10000 }, (error, stdout, stderr) => {
             if (error) {
