@@ -20,14 +20,13 @@ services:
       dockerfile: Dockerfile
     container_name: docker-web-desktop-backend
     restart: unless-stopped
+    user: "0:0"
     ports:
       - "3333:3333"
-    depends_on:
-      - dind-daemon
     environment:
       - NODE_ENV=production
       - PORT=3333
-      - DOCKER_HOST=tcp://dind-daemon:2375
+      - WSL_HOST_BRIDGE_BASE_URL=http://host.docker.internal:3334
     volumes:
       # Mount Docker socket to allow backend to communicate with Docker daemon
       - /var/run/docker.sock:/var/run/docker.sock
@@ -78,7 +77,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:5174",
+          "http://127.0.0.1",
         ]
       interval: 30s
       timeout: 10s
