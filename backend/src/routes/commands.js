@@ -102,7 +102,7 @@ router.post('/openconsole', async (req, res) => {
             console.log(`WSL2 command: ${cmd}`);
         } else {
             // Open Windows console
-            cmd = process.platform === 'win32' ? `start cmd.exe /k ${sanitizedCommand}` : `sh -- ${sanitizedCommand}`;
+            cmd = process.platform === 'win32' ? `start cmd.exe /k ${sanitizedCommand}` : `sh -c "${sanitizedCommand}"`;
         }
 
         const child = exec(cmd, {

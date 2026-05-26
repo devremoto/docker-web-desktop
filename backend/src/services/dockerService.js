@@ -42,15 +42,14 @@ class DockerService {
 
         this.source = options.source || 'local';
         this.wslDistro = options.wslDistro || process.env.DOCKER_WSL_DISTRO || process.env.WSL_DISTRO || '';
-
+        this.isWsl2 = options.source === 'wsl2';
 
         // Allow custom Docker connection (for WSL2, etc)
-        if (options.source === 'wsl2') {
-            // For WSL2, we'll use Docker CLI via wsl.exe
-            // But still create a docker instance for methods that need it
-            this.docker = new Docker({
-                socketPath: process.platform === 'win32' ? '\\\\.\\pipe\\docker_engine' : '/var/run/docker.sock'
-            });
+        if (this.isWsl2) {
+            const host = options.wslHost || process.env.DOCKER_WSL_HOST || '127.0.0.1';
+            const port = options.wslPort || process.env.DOCKER_WSL_PORT || 2375;
+            // For WSL2, prefer direct Docker API access via TCP and fallback to WSL CLI.
+            this.docker = new Docker({ host, port });
             this.useWSL = true;
         } else if (options.dockerOptions) {
             this.docker = new Docker(options.dockerOptions);
@@ -75,11 +74,15 @@ class DockerService {
                 return stdout;
             }
 
-            const runWithDefaultDistro = () => execAsync(`wsl.exe -- docker ${command}`);
+            const runWithDefaultDistro = () => {
+                const commandStr = `wsl docker ${command}`;
+                return execAsync(commandStr);
+            };
 
             const runWithExplicitDistro = () => {
                 const distro = this.wslDistro.replace(/"/g, '');
-                return execAsync(`wsl.exe -d "${distro}" -- docker ${command}`);
+                const commandStr = `wsl -d ${distro} docker ${command}`;
+                return execAsync(commandStr);
             };
 
             let result;
@@ -119,10 +122,43 @@ class DockerService {
 
     async getContainers(all = true) {
         try {
+            if (this.isWsl2 && !this.useWSL) {
+                try {
+                    const containers = await this.docker.listContainers({ all });
+
+                    const enhancedContainers = await Promise.all(
+                        containers.map(async (container) => {
+                            try {
+                                const containerObj = this.docker.getContainer(container.Id);
+                                const inspectData = await containerObj.inspect();
+
+                                return {
+                                    ...container,
+                                    Labels: inspectData.Config.Labels || {},
+                                    NetworkSettings: inspectData.NetworkSettings || {}
+                                };
+                            } catch (error) {
+                                console.warn(`Failed to inspect container ${container.Id}:`, error.message);
+                                return container;
+                            }
+                        })
+                    );
+
+                    return enhancedContainers;
+                } catch (error) {
+                    if (error.message && (error.message.includes('ECONNREFUSED') || error.message.includes('ECONNRESET') || error.message.includes('ENOTFOUND') || error.message.includes('UNKNOWN') || error.message.includes('EACCES'))) {
+                        console.warn('WSL2 dockerode TCP connection failed, falling back to WSL CLI:', error.message);
+                        this.useWSL = true;
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+
             if (this.useWSL) {
                 // Use WSL Docker CLI
                 const allFlag = all ? '-a' : '';
-                const output = await this.executeWSLDockerCommand(`ps ${allFlag} --format "{{json .}}"`);
+                const output = await this.executeWSLDockerCommand(`ps ${allFlag} --format '{{json .}}'`);
 
                 // Split by }{ pattern to handle concatenated JSON objects
                 let jsonStrings = output.trim();
@@ -158,7 +194,7 @@ class DockerService {
                 const enhanced = await Promise.all(
                     containers.map(async (container) => {
                         try {
-                            const inspectOut = await this.executeWSLDockerCommand(`inspect ${container.Id} --format "{{json .}}"`);
+                            const inspectOut = await this.executeWSLDockerCommand(`inspect ${container.Id} --format '{{json .}}'`);
                             // Handle potential concatenated output (rare for single inspect)
                             const trimmed = inspectOut.trim();
                             const inspectJson = JSON.parse(trimmed);
@@ -311,7 +347,7 @@ class DockerService {
     async inspectContainer(id) {
         try {
             if (this.useWSL) {
-                const out = await this.executeWSLDockerCommand(`inspect ${id} --format "{{json .}}"`);
+                const out = await this.executeWSLDockerCommand(`inspect ${id} --format '{{json .}}'`);
                 return JSON.parse(out.trim());
             }
             const container = this.docker.getContainer(id);
@@ -325,7 +361,7 @@ class DockerService {
     async getContainerStats(id) {
         try {
             if (this.useWSL) {
-                const out = await this.executeWSLDockerCommand(`stats ${id} --no-stream --format "{{json .}}"`);
+                const out = await this.executeWSLDockerCommand(`stats ${id} --no-stream --format '{{json .}}'`);
                 const data = JSON.parse(out.trim());
                 const cpuPercentage = parseFloat((data.CPUPerc || '0').replace('%', '')) || 0;
                 const memoryPercentage = parseFloat((data.MemPerc || '0').replace('%', '')) || 0;
@@ -819,7 +855,7 @@ class DockerService {
             let images;
 
             if (this.useWSL) {
-                const output = await this.executeWSLDockerCommand('images --format "{{json .}}"');
+                const output = await this.executeWSLDockerCommand("images --format '{{json .}}'");
 
                 // Split by }{ pattern to handle concatenated JSON objects
                 let jsonStrings = output.trim();
@@ -954,7 +990,7 @@ class DockerService {
     async getVolumes() {
         try {
             if (this.useWSL) {
-                const output = await this.executeWSLDockerCommand('volume ls --format "{{json .}}"');
+                const output = await this.executeWSLDockerCommand("volume ls --format '{{json .}}'");
 
                 // Split by }{ pattern to handle concatenated JSON objects
                 let jsonStrings = output.trim();
@@ -1008,7 +1044,7 @@ class DockerService {
     async getNetworks() {
         try {
             if (this.useWSL) {
-                const output = await this.executeWSLDockerCommand('network ls --format "{{json .}}"');
+                const output = await this.executeWSLDockerCommand("network ls --format '{{json .}}'");
 
                 // Split by }{ pattern to handle concatenated JSON objects
                 let jsonStrings = output.trim();
