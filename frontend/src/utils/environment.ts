@@ -1,20 +1,4 @@
 // Environment configuration utility
-interface ImportMetaEnv {
-    readonly VITE_API_BASE_URL?: string
-    readonly VITE_APP_TITLE?: string
-    readonly VITE_APP_VERSION?: string
-    readonly VITE_DEBUG?: string
-    readonly VITE_SOCKET_URL?: string
-    readonly VITE_LOG_LEVEL?: 'debug' | 'info' | 'warn' | 'error'
-    readonly DEV?: boolean
-    readonly PROD?: boolean
-    readonly MODE?: string
-}
-
-interface ImportMeta {
-    readonly env: ImportMetaEnv
-}
-
 interface EnvironmentConfig {
     apiBaseUrl: string
     appTitle: string
